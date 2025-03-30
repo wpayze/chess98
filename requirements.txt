@@ -7,3 +7,4 @@ bcrypt
 python-jose[cryptography]
 alembic
 pydantic[email]
+aiocache
