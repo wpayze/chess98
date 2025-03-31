@@ -5,10 +5,11 @@ from app.services.game import create_game_and_active_game
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from typing import Optional
-from app.ws.manager import manager
+from app.ws.manager.matchmaking import matchmaking_manager
 import logging
 import json
 
+# TODO: abstraer el cache a una funcion que vaya en /cache -> ejemplo /cache/matchmaking.py
 cache = SimpleMemoryCache(serializer=JsonSerializer())
 
 async def find_match(queued_player: QueuedPlayer, db: AsyncSession) -> Optional[UUID]:
@@ -32,7 +33,7 @@ async def find_match(queued_player: QueuedPlayer, db: AsyncSession) -> Optional[
     while queue:
         opponent_data = queue.pop(0)
         temp = QueuedPlayer.model_validate(opponent_data)
-        if manager.get(temp.user_id):
+        if matchmaking_manager.get(temp.user_id):
             opponent = temp
             break
         else:
@@ -62,7 +63,7 @@ async def find_match(queued_player: QueuedPlayer, db: AsyncSession) -> Optional[
 
 async def notify_players(game_id: UUID, user_ids: list[UUID]):
     for uid in user_ids:
-        ws = manager.get(uid)
+        ws = matchmaking_manager.get(uid)
         if not ws:
             continue
 
@@ -71,8 +72,7 @@ async def notify_players(game_id: UUID, user_ids: list[UUID]):
                 "type": "match_found",
                 "game_id": str(game_id)
             })
-            await ws.close()
-            manager.disconnect(uid)
+            matchmaking_manager.disconnect(uid)
         except RuntimeError as e:
             logging.warning(f"⚠️ WebSocket cerrado para {uid}: {e}")
-            manager.disconnect(uid)
+            matchmaking_manager.disconnect(uid)

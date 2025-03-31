@@ -2,6 +2,7 @@ from uuid import UUID, uuid4
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiocache import caches
+from app.utils.time import parse_time_control
 
 from app.models.game import Game, GameStatus
 from app.schemas import QueuedPlayer
@@ -53,8 +54,7 @@ async def create_game_and_active_game(
         black_rating=1200
     )
 
-    # Calcular tiempo inicial según time_control (por ahora, fijo 5min)
-    initial_time = 300  # segundos
+    initial_time, increment = parse_time_control(game.time_control)
 
     # Crear el estado activo en caché
     active_game = ActiveGame(
@@ -65,6 +65,8 @@ async def create_game_and_active_game(
         turn=PlayerColor.white,
         white_time_remaining=initial_time,
         black_time_remaining=initial_time,
+        initial_time=initial_time,
+        increment=increment,
         last_move_timestamp=datetime.utcnow(),
         moves_san=[],
         moves_uci=[],

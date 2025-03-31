@@ -3,7 +3,7 @@ from uuid import UUID
 from typing import Optional
 import logging
 
-class ConnectionManager:
+class MatchmakingConnectionManager:
     def __init__(self):
         self.active_connections: dict[UUID, WebSocket] = {}
 
@@ -30,4 +30,4 @@ class ConnectionManager:
             logging.warning(f"⚠️ WebSocket cerrado para {user_id}, desconectando. Error: {e}")
             self.disconnect(user_id)
 
-manager = ConnectionManager()
+matchmaking_manager = MatchmakingConnectionManager()

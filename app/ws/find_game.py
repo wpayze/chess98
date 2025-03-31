@@ -5,11 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas import QueuedPlayer
 from app.services.matchmaking import find_match
-from app.ws.manager import manager
+from app.ws.manager.matchmaking import matchmaking_manager
 from app.database.connection import get_db
 from aiocache import SimpleMemoryCache
 from aiocache.serializers import JsonSerializer
+from app.constants.time_control import TimeControl
 
+# TODO: abstraer el cache a una funcion que vaya en /cache -> ejemplo /cache/matchmaking.py
 cache = SimpleMemoryCache(serializer=JsonSerializer())
 
 async def websocket_find_game(
@@ -18,7 +20,7 @@ async def websocket_find_game(
     db: AsyncSession = Depends(get_db)
 ):
     await websocket.accept()
-    manager.connect(user_id, websocket)
+    matchmaking_manager.connect(user_id, websocket)
 
     try:
         while True:
@@ -27,11 +29,19 @@ async def websocket_find_game(
             except RuntimeError:
                 # WebSocket ya no está conectado (ej: cerrado por notify_players)
                 break
-    
-            data = await websocket.receive_json()
 
             if data.get("type") == "find_game":
-                time_control = data.get("time_control", "blitz_5min")
+                time_control = data.get("time_control")
+
+                # Si no se manda time_control, o es inválido → cerrar
+                if not time_control or time_control not in TimeControl._value2member_map_:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Invalid or missing time control"
+                    })
+                    await websocket.close()
+                    matchmaking_manager.disconnect(user_id)
+                    return
 
                 player = QueuedPlayer(
                     user_id=user_id,
@@ -65,4 +75,4 @@ async def websocket_find_game(
                 })
 
     except WebSocketDisconnect:
-        manager.disconnect(user_id)
+        matchmaking_manager.disconnect(user_id)
