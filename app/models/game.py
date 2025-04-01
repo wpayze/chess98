@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from sqlalchemy import Column, String, DateTime, Integer, Enum as SQLEnum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -35,8 +35,8 @@ class Game(Base):
     black_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     
     time_control = Column(String, nullable=False)
-    start_time = Column(DateTime, default=datetime.utcnow, nullable=False)
-    end_time = Column(DateTime, nullable=True)
+    start_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
+    end_time = Column(DateTime(timezone=True), nullable=True)
     
     status = Column(SQLEnum(GameStatus), default=GameStatus.pending, nullable=False)
     result = Column(SQLEnum(GameResult), nullable=True)

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum, JSON
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -26,8 +26,8 @@ class User(Base):
     is_email_verified = Column(Boolean, default=False)
     status = Column(SQLEnum(UserStatus), default=UserStatus.active, nullable=False)
     role = Column(SQLEnum(UserRole), default=UserRole.user, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    last_login_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
     two_factor_enabled = Column(Boolean, default=False)
     
     profile = relationship("Profile", back_populates="user", uselist=False)

@@ -1,5 +1,5 @@
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiocache import caches
 from app.utils.time import parse_time_control
@@ -25,7 +25,7 @@ async def create_game(
         black_id=black_id,
         time_control=time_control,
         status=GameStatus.active,
-        start_time=datetime.utcnow(),
+        start_time=datetime.now(timezone.utc),
         white_rating=white_rating,
         black_rating=black_rating
     )
@@ -67,7 +67,7 @@ async def create_game_and_active_game(
         black_time_remaining=initial_time,
         initial_time=initial_time,
         increment=increment,
-        last_move_timestamp=datetime.utcnow(),
+        last_move_timestamp=None,
         moves_san=[],
         moves_uci=[],
         status="active"

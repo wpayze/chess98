@@ -4,6 +4,7 @@ from uuid import UUID
 from typing import Optional
 from app.schemas.active_game import ActiveGame
 
+#TODO borrar
 # TESTING _ BORRARLAS JUNTO CON LA OTRA VERSION DE GET ACTIVE GAME
 # TESTING _ BORRARLAS JUNTO CON LA OTRA VERSION DE GET ACTIVE GAME
 # TESTING _ BORRARLAS JUNTO CON LA OTRA VERSION DE GET ACTIVE GAME
@@ -11,7 +12,6 @@ from app.database.connection import AsyncSessionLocal
 from app.models.game import Game
 from app.utils.time import parse_time_control
 from app.schemas.active_game import PlayerColor
-from datetime import datetime
 # TESTING _ BORRARLAS JUNTO CON LA OTRA VERSION DE GET ACTIVE GAME
 # TESTING _ BORRARLAS JUNTO CON LA OTRA VERSION DE GET ACTIVE GAME
 # TESTING _ BORRARLAS JUNTO CON LA OTRA VERSION DE GET ACTIVE GAME
@@ -21,6 +21,7 @@ cache = SimpleMemoryCache(serializer=JsonSerializer())
 def _key(game_id: UUID) -> str:
     return f"active_game:{game_id}"
 
+#CORRECTA: 
 # async def get_active_game(game_id: UUID) -> Optional[ActiveGame]:
 #     data = await cache.get(_key(game_id))
 #     if data:
@@ -55,7 +56,7 @@ async def get_active_game(game_id: UUID) -> Optional[ActiveGame]:
             increment=increment,
             white_time_remaining=initial_time,
             black_time_remaining=initial_time,
-            last_move_timestamp=datetime.utcnow(),
+            last_move_timestamp=None,
             moves_san=[],
             moves_uci=[],
         )

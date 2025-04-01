@@ -1,6 +1,6 @@
 from fastapi import WebSocket, WebSocketDisconnect, Depends
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas import QueuedPlayer
@@ -47,7 +47,7 @@ async def websocket_find_game(
                     user_id=user_id,
                     rating=1200,  # TODO: traer el rating real desde la DB
                     time_control=time_control,
-                    joined_at=datetime.utcnow()
+                    joined_at=datetime.now(timezone.utc)
                 )
 
                 game_id = await find_match(player, db)

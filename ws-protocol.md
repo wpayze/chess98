@@ -75,6 +75,15 @@ Este documento describe los mensajes aceptados y enviados por los WebSocket del 
 }
 ```
 
+### 🟢 Respuesta: Movimiento
+```json
+{
+  "type": "move",
+  "uci": "e2e4"
+}
+```
+
+
 > Se emite una vez que ambos jugadores se han conectado.
 
 ---

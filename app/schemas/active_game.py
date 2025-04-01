@@ -23,7 +23,7 @@ class ActiveGame(BaseModel):
 
     white_time_remaining: int
     black_time_remaining: int
-    last_move_timestamp: datetime
+    last_move_timestamp: Optional[datetime] = None
 
     # ♟️ Historial de jugadas
     moves_san: List[str] = Field(default_factory=list)

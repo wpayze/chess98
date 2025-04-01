@@ -1,7 +1,7 @@
 # app/models/profile.py
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Integer, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -44,7 +44,7 @@ class Profile(Base):
     
     title = Column(SQLEnum(TitleEnum, name="title_enum"), nullable=True)
     
-    member_since = Column(DateTime, default=datetime.utcnow, nullable=False)
-    last_active = Column(DateTime, default=datetime.utcnow, nullable=False)
+    member_since = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
+    last_active = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
     
     user = relationship("User", back_populates="profile")

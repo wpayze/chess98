@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from sqlalchemy import Column, String, Integer, Boolean, Float, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -23,7 +23,7 @@ class Move(Base):
     
     fen_after = Column(String, nullable=False)
     
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
     time_spent = Column(Integer, nullable=False)
     
     is_check = Column(Boolean, default=False, nullable=False)
