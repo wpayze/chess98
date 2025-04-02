@@ -1,0 +1,70 @@
+from pydantic import BaseModel, Field
+from uuid import UUID
+from datetime import datetime
+from typing import Optional, Dict
+from enum import Enum
+
+class GameStatus(str, Enum):
+    pending = "pending"
+    active = "active"
+    completed = "completed"
+    aborted = "aborted"
+
+class GameResult(str, Enum):
+    white_win = "white_win"
+    black_win = "black_win"
+    draw = "draw"
+
+class GameTermination(str, Enum):
+    checkmate = "checkmate"
+    resignation = "resignation"
+    timeout = "timeout"
+    draw_agreement = "draw_agreement"
+    stalemate = "stalemate"
+    insufficient_material = "insufficient_material"
+    fifty_move_rule = "fifty_move_rule"
+    threefold_repetition = "threefold_repetition"
+
+# ⬇️ Subschemas específicos para Game
+class ProfileInGame(BaseModel):
+    display_name: str
+    ratings: Dict[str, int]
+
+    class Config:
+        from_attributes = True
+
+class UserInGame(BaseModel):
+    id: UUID
+    username: str
+    profile: Optional[ProfileInGame]
+
+    class Config:
+        from_attributes = True
+
+# 🎯 Esquema final de respuesta del juego
+class GameOut(BaseModel):
+    id: UUID
+    time_control: str
+    time_control_str: str
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    status: str
+    result: Optional[str] = None
+    termination: Optional[str] = None
+
+    white_rating: int
+    black_rating: int
+    white_rating_change: Optional[int] = None
+    black_rating_change: Optional[int] = None
+
+    initial_fen: str
+    final_fen: Optional[str] = None
+    opening: Optional[str] = None
+    eco_code: Optional[str] = None
+
+    white: UserInGame = Field(alias="white_player")
+    black: UserInGame = Field(alias="black_player")
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True

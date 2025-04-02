@@ -35,6 +35,8 @@ class Game(Base):
     black_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     
     time_control = Column(String, nullable=False)
+    time_control_str = Column(String, nullable=False)
+
     start_time = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=True)
     

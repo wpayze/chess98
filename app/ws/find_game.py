@@ -32,6 +32,7 @@ async def websocket_find_game(
 
             if data.get("type") == "find_game":
                 time_control = data.get("time_control")
+                time_control_str = data.get("time_control_str")
 
                 # Si no se manda time_control, o es inválido → cerrar
                 if not time_control or time_control not in TimeControl._value2member_map_:
@@ -47,6 +48,7 @@ async def websocket_find_game(
                     user_id=user_id,
                     rating=1200,  # TODO: traer el rating real desde la DB
                     time_control=time_control,
+                    time_control_str=time_control_str,
                     joined_at=datetime.now(timezone.utc)
                 )
 
@@ -68,11 +70,8 @@ async def websocket_find_game(
                 ]
 
                 await cache.set(queue_key, filtered_queue)
-
+                matchmaking_manager.disconnect(user_id)
                 await websocket.close()
-                await websocket.send_json({
-                    "type": "search_cancelled"
-                })
 
     except WebSocketDisconnect:
         matchmaking_manager.disconnect(user_id)

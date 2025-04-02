@@ -6,6 +6,7 @@ class QueuedPlayer(BaseModel):
     user_id: UUID
     rating: int
     time_control: str
+    time_control_str: str
     joined_at: datetime
 
     model_config = {

@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: 9a72f437eb71
+Revision ID: d91dd9ecc38e
 Revises: 
-Create Date: 2025-03-30 13:52:02.639237
+Create Date: 2025-04-01 23:47:15.325448
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '9a72f437eb71'
+revision: str = 'd91dd9ecc38e'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -38,8 +38,8 @@ def upgrade() -> None:
     sa.Column('is_email_verified', sa.Boolean(), nullable=True),
     sa.Column('status', sa.Enum('active', 'suspended', 'banned', name='userstatus'), nullable=False),
     sa.Column('role', sa.Enum('user', 'moderator', 'admin', name='userrole'), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('last_login_at', sa.DateTime(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('two_factor_enabled', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
@@ -50,8 +50,8 @@ def upgrade() -> None:
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('friend_id', sa.UUID(), nullable=False),
     sa.Column('status', sa.Enum('pending', 'accepted', 'rejected', 'blocked', name='friendstatus'), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['friend_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
@@ -62,8 +62,9 @@ def upgrade() -> None:
     sa.Column('white_id', sa.UUID(), nullable=False),
     sa.Column('black_id', sa.UUID(), nullable=False),
     sa.Column('time_control', sa.String(), nullable=False),
-    sa.Column('start_time', sa.DateTime(), nullable=False),
-    sa.Column('end_time', sa.DateTime(), nullable=True),
+    sa.Column('time_control_str', sa.String(), nullable=False),
+    sa.Column('start_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('end_time', sa.DateTime(timezone=True), nullable=True),
     sa.Column('status', sa.Enum('pending', 'active', 'completed', 'aborted', name='gamestatus'), nullable=False),
     sa.Column('result', sa.Enum('white_win', 'black_win', 'draw', name='gameresult'), nullable=True),
     sa.Column('termination', sa.Enum('checkmate', 'resignation', 'timeout', 'draw_agreement', 'stalemate', 'insufficient_material', 'fifty_move_rule', 'threefold_repetition', name='gametermination'), nullable=True),
@@ -93,8 +94,8 @@ def upgrade() -> None:
     sa.Column('losses', sa.Integer(), nullable=False),
     sa.Column('draws', sa.Integer(), nullable=False),
     sa.Column('title', sa.Enum('GM', 'IM', 'FM', 'CM', 'NM', name='title_enum'), nullable=True),
-    sa.Column('member_since', sa.DateTime(), nullable=False),
-    sa.Column('last_active', sa.DateTime(), nullable=False),
+    sa.Column('member_since', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('last_active', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id')
@@ -140,7 +141,7 @@ def upgrade() -> None:
     sa.Column('user_id', sa.UUID(), nullable=True),
     sa.Column('content', sa.String(), nullable=False),
     sa.Column('is_system_message', sa.Boolean(), nullable=False),
-    sa.Column('timestamp', sa.DateTime(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['game_id'], ['games.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -153,7 +154,7 @@ def upgrade() -> None:
     sa.Column('move_san', sa.String(), nullable=False),
     sa.Column('move_uci', sa.String(), nullable=False),
     sa.Column('fen_after', sa.String(), nullable=False),
-    sa.Column('timestamp', sa.DateTime(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(timezone=True), nullable=False),
     sa.Column('time_spent', sa.Integer(), nullable=False),
     sa.Column('is_check', sa.Boolean(), nullable=False),
     sa.Column('is_checkmate', sa.Boolean(), nullable=False),

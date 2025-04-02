@@ -16,7 +16,8 @@ Este documento describe los mensajes aceptados y enviados por los WebSocket del 
 ```json
 {
   "type": "find_game",
-  "time_control": "3+2"
+  "time_control": "3+2",
+  "time_control_str": "blitz"
 }
 ```
 
