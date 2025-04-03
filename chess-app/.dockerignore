@@ -1,0 +1,23 @@
+# Ignorar el directorio node_modules local
+node_modules
+
+# Ignorar el cache de Next.js y otros archivos generados
+.next
+*.log
+
+# Ignorar archivos de configuración específicos del editor
+.vscode
+.idea
+*.swp
+
+# Ignorar archivos de sistema de macOS
+.DS_Store
+
+# Ignorar archivos que no son necesarios para producción
+.env
+Dockerfile
+.dockerignore
+
+# Ignorar el directorio .git para evitar que se copie el repositorio completo
+.git
+.gitignore
