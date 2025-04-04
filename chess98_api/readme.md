@@ -6,6 +6,10 @@
 #### Windows:
 ```sh
 python -m venv venv
+C:\Users\will_\AppData\Local\Programs\Python\Python311\python.exe -m venv venv
+
+#Ver donde esta:
+python -c "import sys; print(sys.executable)" (deberia ser la ruta del proyecto)
 
 # Para Git Bash / WSL:
 source venv/Scripts/activate 

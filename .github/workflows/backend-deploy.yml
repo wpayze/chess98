@@ -1,0 +1,50 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'chess98_api/**'
+      - 'deploy/fastapi-stack.yaml'
+      - '.github/workflows/backend-deploy.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push backend image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/chess98-api:latest ./chess98_api
+        docker push ${{ secrets.DOCKER_USERNAME }}/chess98-api:latest
+
+    - name: Set up Kubeconfig
+      run: |
+        echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+
+    - name: Create Kubernetes Secret
+      run: |
+        kubectl --kubeconfig=kubeconfig.yaml delete secret chess98-secrets --ignore-not-found
+        kubectl --kubeconfig=kubeconfig.yaml create secret generic chess98-secrets \
+          --from-literal=POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+          --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+          --from-literal=SECRET_KEY="${{ secrets.SECRET_KEY }}"
+
+    - name: Apply backend manifest
+      run: kubectl --kubeconfig=kubeconfig.yaml apply -f deploy/fastapi-stack.yaml
+
+    - name: Force redeploy backend
+      run: kubectl rollout restart deployment backend --kubeconfig=kubeconfig.yaml

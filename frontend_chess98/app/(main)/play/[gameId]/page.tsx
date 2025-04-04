@@ -571,6 +571,9 @@ export default function PlayPage() {
             {chessModule ? (
               <ChessboardComponent
                 id="BasicBoard"
+                arePremovesAllowed={true}
+                clearPremovesOnRightClick={true}
+                animationDuration={200}
                 position={fen}
                 onPieceDrop={gameStatus === "active" ? onDrop : () => false}
                 boardOrientation={
@@ -583,6 +586,7 @@ export default function PlayPage() {
                 customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
                 customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
                 showBoardNotation={true}
+
               />
             ) : (
               <div className="w-full h-full grid grid-cols-8 grid-rows-8">
