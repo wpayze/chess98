@@ -69,7 +69,7 @@ export default function ProfilePage() {
           id: "1",
           userId: "1",
           displayName: username,
-          bio: "Chess enthusiast and coffee lover. Playing since 2015.",
+          bio: "Soy GP (Gran Pato)",
           country: "United States",
           avatar: "/placeholder.svg?height=200&width=200",
           ratings: {
@@ -101,7 +101,7 @@ export default function ProfilePage() {
                 earnedAt: new Date("2022-11-03"),
               },
             ],
-            title: null,
+            title: "GP",
           },
           friends: ["2", "3", "4"],
           following: ["2", "3", "4", "5", "6"],

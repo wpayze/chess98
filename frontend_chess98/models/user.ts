@@ -46,7 +46,7 @@ export interface Profile {
     // Achievements
     achievements: Achievement[]
     // Titles (e.g., GM, IM, FM)
-    title?: "GM" | "IM" | "FM" | "CM" | "NM" | null
+    title?: "GM" | "IM" | "FM" | "CM" | "NM" | "GP" | null
   }
   // Social
   friends: string[] // Array of profile IDs
