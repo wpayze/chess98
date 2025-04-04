@@ -35,7 +35,12 @@ type WaitingForOpponentMessage = {
 };
 
 type DrawOfferReceivedMessage = {
-  type: "draw_offer_received";
+  type: "draw_offer";
+  from: string;
+};
+
+type DrawOfferDeclinedMessage = {
+  type: "draw_offer_declined";
   from: string;
 };
 
@@ -52,6 +57,7 @@ type IncomingMessage =
   | GameOverMessage
   | ChatMessageReceived
   | DrawOfferReceivedMessage
+  | DrawOfferDeclinedMessage
   | any;
 
 type OutgoingMoveMessage = {
@@ -71,6 +77,7 @@ export class GameplayService {
       onMoveMade,
       onGameOver,
       onDrawOfferReceived,
+      onDrawOfferDeclined,
       onChatMessage,
     }: {
       onWaitingForOpponent?: () => void;
@@ -79,6 +86,7 @@ export class GameplayService {
       onGameOver?: (msg: GameOverMessage) => void;
       onDrawOfferReceived?: (msg: DrawOfferReceivedMessage) => void;
       onChatMessage?: (msg: ChatMessageReceived) => void;
+      onDrawOfferDeclined?: (msg: ChatMessageReceived) => void;
     }
   ) {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
@@ -109,8 +117,11 @@ export class GameplayService {
           case "game_over":
             onGameOver?.(data);
             break;
-          case "draw_offer_received":
+          case "draw_offer":
             onDrawOfferReceived?.(data);
+            break;
+          case "draw_offer_declined":
+            onDrawOfferDeclined?.(data);
             break;
           case "chat_message":
             onChatMessage?.(data);
@@ -138,6 +149,10 @@ export class GameplayService {
   
   sendDrawOffer() {
     this.send({ type: "draw_offer" });
+  }
+
+  sendDrawDecline() {
+    this.send({ type: "draw_decline" });
   }
   
   sendDrawAccept() {

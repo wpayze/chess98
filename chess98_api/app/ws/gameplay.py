@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.game import Game
 from app.cache.game import get_active_game, save_active_game
 from app.services.move import handle_move, InvalidMove, handle_timeout_loss
-from app.services.user_actions import handle_resign, handle_draw_offer, handle_draw_accept, handle_chat_message
+from app.services.user_actions import handle_resign, handle_draw_offer, handle_draw_accept, handle_chat_message, handle_draw_declined
 from app.services.timer import get_timeout_loser
 import logging
 
@@ -126,6 +126,9 @@ async def websocket_game(
 
             elif data.get("type") == "draw_accept":
                 await handle_draw_accept(game_id, db)
+
+            elif data.get("type") == "draw_decline":
+                await handle_draw_declined(game_id, user_id)
 
             elif data.get("type") == "chat_message":
                 message = data.get("message")

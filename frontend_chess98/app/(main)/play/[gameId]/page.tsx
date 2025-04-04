@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Flag, RotateCcw } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import { gameService } from "@/services/game-service";
 import { Game } from "@/models/play";
 import { useAuthStore } from "@/store/auth-store";
 import { gameplayService } from "@/services/gameplay-service";
+import GameStatus from "@/components/game/game-status";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -29,8 +30,6 @@ const ChessboardComponent = dynamic(
 );
 
 export default function PlayPage() {
-  const router = useRouter();
-
   const params = useParams();
   const gameId = params?.gameId as string;
 
@@ -73,6 +72,8 @@ export default function PlayPage() {
   const [blackTime, setBlackTime] = useState(0);
   const [isWhiteTurn, setIsWhiteTurn] = useState(true);
   const [gameStarted, setGameStarted] = useState(false);
+  const [drawOffered, setDrawOffered] = useState(false);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   //Data
@@ -161,11 +162,11 @@ export default function PlayPage() {
         console.log("Move made:", data.san, "UCI:", data.uci);
       },
       onGameOver: (data) => {
-        setGameStatus("finished")
-      
-        let resultText = ""
+        setGameStatus("finished");
+
+        let resultText = "";
         let customMessage = "";
-      
+
         if (data.result === "draw") {
           resultText = `Game drawn by ${terminationToText(data.termination)}`;
           customMessage = resultText;
@@ -176,20 +177,28 @@ export default function PlayPage() {
           customMessage = `${loser}'s time has run out. ${winner} wins!`;
         } else {
           const winner = data.result === "white_win" ? "White" : "Black";
-          resultText = `${winner} wins by ${terminationToText(data.termination)}`;
+          resultText = `${winner} wins by ${terminationToText(
+            data.termination
+          )}`;
           customMessage = resultText;
         }
 
-        setGameResult(resultText)
-        addSystemMessage(customMessage)
+        setGameResult(resultText);
+        addSystemMessage(customMessage);
       },
       onChatMessage: ({ from, message }) => {
         setChatMessages((prev) => [...prev, { sender: from, message }]);
       },
-      
       onDrawOfferReceived: ({ from }) => {
+        console.log({from, user})
+        if (from === user.id) return;
+
+        setDrawOffered(true);
         addSystemMessage("Opponent offered a draw.");
       },
+      onDrawOfferDeclined: ({from}) => { 
+        addSystemMessage("Draw declined.")
+      }
     });
 
     return () => {
@@ -244,7 +253,7 @@ export default function PlayPage() {
       if (isWhiteTurn) {
         setWhiteTime((prev) => {
           if (prev <= 0) {
-            gameplayService.sendTimeoutCheck()
+            gameplayService.sendTimeoutCheck();
             return 0;
           }
           return prev - 1;
@@ -252,7 +261,7 @@ export default function PlayPage() {
       } else {
         setBlackTime((prev) => {
           if (prev <= 0) {
-            gameplayService.sendTimeoutCheck()
+            gameplayService.sendTimeoutCheck();
             return 0;
           }
           return prev - 1;
@@ -267,27 +276,26 @@ export default function PlayPage() {
     };
   }, [gameStarted, gameStatus, isWhiteTurn]);
 
-
   function terminationToText(reason: string) {
     switch (reason) {
       case "checkmate":
-        return "CheckMate"
+        return "CheckMate";
       case "resignation":
-        return "Resignation"
+        return "Resignation";
       case "timeout":
-        return "TimeOut"
+        return "TimeOut";
       case "draw_agreement":
-        return "Draw Agreement"
+        return "Draw Agreement";
       case "stalemate":
-        return "StaleMate"
+        return "StaleMate";
       case "insufficient_material":
-        return "Insufficient Material"
+        return "Insufficient Material";
       case "fifty_move_rule":
-        return "50-move rule"
+        return "50-move rule";
       case "threefold_repetition":
-        return "threefold repetition"
+        return "threefold repetition";
       default:
-        return reason
+        return reason;
     }
   }
 
@@ -329,7 +337,7 @@ export default function PlayPage() {
       setFen(gameCopy.fen());
 
       // Send move to server
-      const uci = `${sourceSquare}${targetSquare}${move.promotion || ""}`
+      const uci = `${sourceSquare}${targetSquare}${move.promotion || ""}`;
       gameplayService.sendMove(uci);
 
       return true;
@@ -337,6 +345,12 @@ export default function PlayPage() {
       console.error("Move error:", err);
       return false;
     }
+  }
+
+  const declineDraw = () => {
+    setDrawOffered(false); 
+    addSystemMessage("Draw declined.")
+    gameplayService.sendDrawDecline()
   }
 
   // Replace the handleResign function with this:
@@ -348,7 +362,7 @@ export default function PlayPage() {
   const confirmResign = () => {
     if (gameStatus !== "active" || !isOpponentReady) return;
     gameplayService.sendResign();
-    setShowResignConfirmation(false)
+    setShowResignConfirmation(false);
   };
 
   const openDrawConfirmation = () => {
@@ -359,6 +373,7 @@ export default function PlayPage() {
   const offerDraw = () => {
     if (gameStatus !== "active" || !isOpponentReady) return;
     gameplayService.sendDrawOffer();
+    addSystemMessage("You offered a Draw.");
     setShowDrawConfirmation(false);
   };
 
@@ -385,7 +400,14 @@ export default function PlayPage() {
 
   const sendMessage = (message: string) => {
     if (!currentPlayerData?.username) return;
-    gameplayService.sendChatMessageWebSocket(currentPlayerData.username, message);
+    if (!message) return;
+
+    console.log({MENSAJE: message});
+
+    gameplayService.sendChatMessageWebSocket(
+      currentPlayerData.username,
+      message
+    );
   };
 
   const isCurrentPlayerTurn =
@@ -496,10 +518,12 @@ export default function PlayPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-              
+
                 const form = e.target as HTMLFormElement;
-                const input = form.elements.namedItem("chatInput") as HTMLInputElement;
-              
+                const input = form.elements.namedItem(
+                  "chatInput"
+                ) as HTMLInputElement;
+
                 const message = input.value.trim();
                 if (message) {
                   sendMessage(message);
@@ -586,7 +610,6 @@ export default function PlayPage() {
                 customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
                 customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
                 showBoardNotation={true}
-
               />
             ) : (
               <div className="w-full h-full grid grid-cols-8 grid-rows-8">
@@ -693,32 +716,17 @@ export default function PlayPage() {
           </div>
 
           {/* Game status */}
-          <div className="p-2 text-center">
-            {gameStatus === "finished" ? (
-              <div className="py-2 px-3 bg-slate-800/70 rounded-md border border-slate-700/50">
-                <div className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-1">
-                  Game Over
-                </div>
-                <div className="text-white">{gameResult}</div>
-                <Button
-                  className="bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 mt-3 text-xs h-8"
-                  onClick={() => router.push("/")}
-                >
-                  Return to Home
-                </Button>
-              </div>
-            ) : (
-              <div className="text-sm text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent font-semibold px-4">
-                {!isOpponentReady
-                  ? "Waiting for opponent"
-                  : !gameStarted
-                  ? "Make a move to start the game"
-                  : gameStatus === "canceled"
-                  ? "Game canceled"
-                  : ""}
-              </div>
-            )}
-          </div>
+          <GameStatus
+            gameStatus={gameStatus}
+            gameResult={gameResult}
+            isOpponentReady={isOpponentReady}
+            gameStarted={gameStarted}
+            drawOffered={drawOffered}
+            onAcceptDraw={() => {
+              gameplayService.sendDrawAccept();
+            }}
+            onDeclineDraw={declineDraw}
+          />
 
           {/* Bottom player (current player) */}
           <div className="p-3 flex flex-col items-center">

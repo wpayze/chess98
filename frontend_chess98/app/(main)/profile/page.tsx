@@ -2,15 +2,19 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/store/auth-store"
 
-// This is a simple redirect page to the current user's profile
 export default function ProfilePage() {
   const router = useRouter()
+  const { isAuthenticated, user } = useAuthStore()
 
   useEffect(() => {
-    // In a real app, this would check authentication and redirect to the current user's profile
-    // For now, we'll just redirect to a sample profile
-    router.push("/profile/Impala36")
+
+    if (isAuthenticated && user) {
+      router.push("/profile/" + user.username)
+    } else {
+      router.push("/auth/login")
+    }
   }, [router])
 
   return (

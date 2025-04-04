@@ -47,4 +47,4 @@ jobs:
       run: kubectl --kubeconfig=kubeconfig.yaml apply -f deploy/fastapi-stack.yaml
 
     - name: Force redeploy backend
-      run: kubectl rollout restart deployment backend --kubeconfig=kubeconfig.yaml
+      run: kubectl rollout restart deployment fastapi-app --kubeconfig=kubeconfig.yaml
