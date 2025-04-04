@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.game import get_game_by_id, get_games_by_user
-from app.schemas.game import GameOut
+from app.services.user import get_user_by_username 
 
 class GameController:
     @staticmethod
@@ -15,5 +15,8 @@ class GameController:
         return game
 
     @staticmethod
-    async def list_user_games(user_id: UUID, page: int, page_size: int, db: AsyncSession):
-        return await get_games_by_user(user_id, page, page_size, db)
+    async def list_user_games(username: str, page: int, page_size: int, db: AsyncSession):
+        user = await get_user_by_username(username, db)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return await get_games_by_user(user.id, page, page_size, db)

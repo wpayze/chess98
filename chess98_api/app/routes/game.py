@@ -3,8 +3,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.connection import get_db
 from app.controllers.game import GameController
-from app.schemas.game import GameSummary
-from typing import List
+from app.schemas.game import PaginatedGames
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -15,14 +14,14 @@ async def get_game(game_id: UUID, db: AsyncSession = Depends(get_db)):
     """
     return await GameController.get_game(game_id, db)
 
-@router.get("/user/{user_id}", response_model=List[GameSummary])
+@router.get("/user/{username}", response_model=PaginatedGames)
 async def list_user_games(
-    user_id: UUID,
+    username: str,
     page: int = Query(1, ge=1),
     page_size: int = Query(10, le=100),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Devuelve las partidas de un usuario.
+    Devuelve las partidas de un usuario por username.
     """
-    return await GameController.list_user_games(user_id, page, page_size, db)
+    return await GameController.list_user_games(username, page, page_size, db)

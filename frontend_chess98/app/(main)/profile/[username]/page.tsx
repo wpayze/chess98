@@ -31,9 +31,6 @@ import {
   Edit,
 } from "lucide-react"
 
-// Import mock data
-import mockGamesData from "@/data/games.json"
-
 // Import types
 import type { Profile, FriendSummary } from "@/models/user"
 import { useAuthStore } from "@/store/auth-store"
@@ -41,6 +38,8 @@ import { useAuthStore } from "@/store/auth-store"
 // First, import the MiniChessboard component at the top of the file
 import { MiniChessboard } from "@/components/mini-chessboard"
 import { GameSummary } from "@/models/game"
+import { gameService } from "@/services/game-service"
+import { formatDate } from "@/utils/formatDate"
 
 export default function ProfilePage() {
   const params = useParams()
@@ -55,20 +54,16 @@ export default function ProfilePage() {
   const isOwnProfile = user?.username === username
 
   useEffect(() => {
-    // Simulate API call to fetch profile data
     const fetchProfile = async () => {
       setIsLoading(true)
       try {
-        // In a real app, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        //Get Profile by Username
+        // not yet implemented! TODO userService.getByUsername
 
-        // Convert dates from strings to Date objects in games data
-        const gamesWithDates = mockGamesData.map((game) => ({
-          ...game,
-          date: new Date(game.date),
-        })) as GameSummary[]
+        const response = await gameService.getGameByUsername(username, 1, 5);
+        console.log({response})
 
-        // Mock profile data - always return data regardless of authentication
+        // Mock profile data for now
         setProfile({
           id: "1",
           userId: "1",
@@ -122,8 +117,7 @@ export default function ProfilePage() {
           memberSince: new Date("2020-06-12"),
         })
 
-        // Use the mock games data
-        setRecentGames(gamesWithDates)
+        setRecentGames(response.games)
 
         // Mock friends
         setFriends([
@@ -152,6 +146,7 @@ export default function ProfilePage() {
             lastActive: new Date("2023-03-24T14:30:00"),
           },
         ])
+
       } catch (error) {
         console.error("Error fetching profile:", error)
       } finally {
@@ -193,15 +188,6 @@ export default function ProfilePage() {
         </Card>
       </div>
     )
-  }
-
-  // Format date to readable string
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
   }
 
   // Format time ago
@@ -265,7 +251,7 @@ export default function ProfilePage() {
                 )}
                 <div className="flex items-center text-sm text-slate-300">
                   <Calendar className="w-4 h-4 mr-1 text-slate-400" />
-                  Member since {formatDate(profile.memberSince)}
+                  Member since {formatDate(profile.memberSince.toISOString())}
                 </div>
                 <div className="flex items-center text-sm text-slate-300">
                   <Activity className="w-4 h-4 mr-1 text-slate-400" />
@@ -476,7 +462,7 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentGames.slice(0, 5).map((game) => (
+                  {recentGames.map((game) => (
                     <Link href={`/game/${game.id}`} key={game.id}>
                       <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-3">
@@ -492,7 +478,7 @@ export default function ProfilePage() {
 
                           {/* Add the mini chessboard */}
                           <MiniChessboard
-                            fen={game.finalPosition || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"}
+                            fen={game.final_position || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"}
                             size={80}
                             className="hidden md:block"
                           />
@@ -500,9 +486,9 @@ export default function ProfilePage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-white">vs {game.opponent.username}</span>
-                              <Badge className="bg-slate-700 text-slate-300">{game.timeControl}</Badge>
+                              <Badge className="bg-slate-700 text-slate-300">{game.time_control_str}</Badge>
                               <span className="text-xs text-slate-400">
-                                {game.playerColor === "white" ? "White" : "Black"}
+                                {game.player_color === "white" ? "White" : "Black"}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-sm mt-1">
@@ -520,7 +506,7 @@ export default function ProfilePage() {
                                 }`}
                               >
                                 {game.result === "win" ? "Won" : game.result === "loss" ? "Lost" : "Draw"} by{" "}
-                                {game.endReason}
+                                {game.end_reason}
                               </span>
                             </div>
                           </div>
@@ -530,15 +516,15 @@ export default function ProfilePage() {
                             <span className="text-slate-300 mr-2">{game.opponent.rating}</span>
                             <span
                               className={`text-sm font-medium ${
-                                game.ratingChange > 0
+                                game.rating_change > 0
                                   ? "text-green-400"
-                                  : game.ratingChange < 0
+                                  : game.rating_change < 0
                                     ? "text-red-400"
                                     : "text-slate-400"
                               }`}
                             >
-                              {game.ratingChange > 0 ? "+" : ""}
-                              {game.ratingChange}
+                              ({game.rating_change > 0 ? "+" : ""}
+                              {game.rating_change})
                             </span>
                           </div>
                           <ChevronRight className="h-4 w-4 text-slate-500 mt-1" />
@@ -668,7 +654,7 @@ export default function ProfilePage() {
                       <div>
                         <div className="font-medium text-white">{achievement.name}</div>
                         <div className="text-sm text-slate-400">{achievement.description}</div>
-                        <div className="text-xs text-slate-500 mt-1">Earned on {formatDate(achievement.earnedAt)}</div>
+                        <div className="text-xs text-slate-500 mt-1">Earned on {formatDate(achievement.earnedAt.toISOString())}</div>
                       </div>
                     </div>
                   ))}

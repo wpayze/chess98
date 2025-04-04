@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional, Dict, Literal
 from enum import Enum
+from typing import List
 
 class GameStatus(str, Enum):
     pending = "pending"
@@ -91,3 +92,10 @@ class GameSummary(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PaginatedGames(BaseModel):
+    games: List[GameSummary]
+    page: int
+    page_size: int
+    total_pages: int
+    total_games: int

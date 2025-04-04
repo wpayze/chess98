@@ -42,9 +42,9 @@ export type Game = {
 
   white_rating: number
   black_rating: number
-  white_rating_change?: number | null
-  black_rating_change?: number | null
-
+  white_rating_change: number
+  black_rating_change: number
+  pgn: string;
   initial_fen: string
   final_fen?: string | null
   opening?: string | null

@@ -19,23 +19,25 @@ import {
 } from "@/components/ui/pagination"
 import { ChevronLeft, ChevronRight, Search, Filter, Clock, Trophy } from "lucide-react"
 
-// Import mock data
-import mockGamesData from "@/data/games.json"
-
 import { MiniChessboard } from "@/components/mini-chessboard"
-import { GameSummary } from "@/models/game"
-
+import type { GameSummary } from "@/models/game"
+import { gameService } from "@/services/game-service"
+import { formatDate } from "@/utils/formatDate"
 
 export default function UserGamesPage() {
   const params = useParams()
-  const router = useRouter()
   const username = params.username as string
 
   const [games, setGames] = useState<GameSummary[]>([])
   const [filteredGames, setFilteredGames] = useState<GameSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Pagination
+  // API Pagination
+  const [apiPage, setApiPage] = useState(1)
+  const [totalApiPages, setTotalApiPages] = useState(1)
+  const gamesPerApiPage = 10 // Number of games fetched per API call
+
+  // UI Pagination (for filtered results)
   const [currentPage, setCurrentPage] = useState(1)
   const gamesPerPage = 10
   const [totalPages, setTotalPages] = useState(1)
@@ -47,21 +49,18 @@ export default function UserGamesPage() {
   const [sortBy, setSortBy] = useState("date")
   const [sortOrder, setSortOrder] = useState("desc")
 
+  // Fetch games when apiPage changes
   useEffect(() => {
-    // Simulate API call to fetch games data
     const fetchGames = async () => {
       setIsLoading(true)
       try {
-        // In a real app, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        // In a real app, this would fetch the specific page from the API
+        const response = await gameService.getGameByUsername(username, apiPage, gamesPerApiPage)
 
-        // Convert dates from strings to Date objects in games data
-        const gamesWithDates = mockGamesData.map((game) => ({
-          ...game,
-          date: new Date(game.date),
-        })) as GameSummary[]
+        // Update games and total pages
+        setGames(response.games)
+        setTotalApiPages(Math.ceil(response.total_pages))
 
-        setGames(gamesWithDates)
       } catch (error) {
         console.error("Error fetching games:", error)
       } finally {
@@ -70,7 +69,7 @@ export default function UserGamesPage() {
     }
 
     fetchGames()
-  }, [username])
+  }, [username, apiPage]) // Re-fetch when apiPage changes
 
   // Apply filters and sorting
   useEffect(() => {
@@ -83,7 +82,7 @@ export default function UserGamesPage() {
 
     // Apply time control filter
     if (timeControlFilter !== "all") {
-      result = result.filter((game) => game.timeControl === timeControlFilter)
+      result = result.filter((game) => game.time_control_str === timeControlFilter)
     }
 
     // Apply result filter
@@ -115,13 +114,13 @@ export default function UserGamesPage() {
   const indexOfFirstGame = indexOfLastGame - gamesPerPage
   const currentGames = filteredGames.slice(indexOfFirstGame, indexOfLastGame)
 
-  // Format date to readable string
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
+  // Handle API page change
+  const handleApiPageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalApiPages) {
+      setApiPage(newPage)
+      // Reset UI pagination when API page changes
+      setCurrentPage(1)
+    }
   }
 
   if (isLoading) {
@@ -292,7 +291,7 @@ export default function UserGamesPage() {
 
                         {/* Add the mini chessboard */}
                         <MiniChessboard
-                          fen={game.finalPosition || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"}
+                          fen={game.final_position || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"}
                           size={80}
                           className="hidden md:block"
                         />
@@ -300,9 +299,9 @@ export default function UserGamesPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-white">vs {game.opponent.username}</span>
-                            <Badge className="bg-slate-700 text-slate-300">{game.timeControl}</Badge>
+                            <Badge className="bg-slate-700 text-slate-300">{game.time_control_str}</Badge>
                             <span className="text-xs text-slate-400">
-                              {game.playerColor === "white" ? "White" : "Black"}
+                              {game.player_color === "white" ? "White" : "Black"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-sm mt-1">
@@ -320,7 +319,7 @@ export default function UserGamesPage() {
                               }`}
                             >
                               {game.result === "win" ? "Won" : game.result === "loss" ? "Lost" : "Draw"} by{" "}
-                              {game.endReason}
+                              {game.end_reason}
                             </span>
                           </div>
                         </div>
@@ -330,15 +329,15 @@ export default function UserGamesPage() {
                           <span className="text-slate-300 mr-2">{game.opponent.rating}</span>
                           <span
                             className={`text-sm font-medium ${
-                              game.ratingChange > 0
+                              game.rating_change > 0
                                 ? "text-green-400"
-                                : game.ratingChange < 0
+                                : game.rating_change < 0
                                   ? "text-red-400"
                                   : "text-slate-400"
                             }`}
                           >
-                            {game.ratingChange > 0 ? "+" : ""}
-                            {game.ratingChange}
+                            {game.rating_change > 0 ? "+" : ""}
+                            {game.rating_change}
                           </span>
                         </div>
                         <ChevronRight className="h-4 w-4 text-slate-500 mt-1" />
@@ -347,7 +346,7 @@ export default function UserGamesPage() {
                   </Link>
                 ))}
 
-                {/* Pagination */}
+                {/* UI Pagination (for filtered results) */}
                 {totalPages > 1 && (
                   <Pagination className="mt-6">
                     <PaginationContent>
@@ -416,6 +415,80 @@ export default function UserGamesPage() {
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>
+                )}
+
+                {/* API Pagination (load more games) */}
+                {totalApiPages > 1 && (
+                  <div className="mt-8 border-t border-slate-700 pt-6">
+                    <h3 className="text-sm font-medium text-slate-300 mb-3">Load More Games</h3>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleApiPageChange(apiPage - 1)
+                            }}
+                            className={apiPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+
+                        {Array.from({ length: Math.min(5, totalApiPages) }, (_, i) => {
+                          // Show first page, last page, current page, and pages around current
+                          let pageToShow
+                          if (totalApiPages <= 5) {
+                            pageToShow = i + 1
+                          } else if (apiPage <= 3) {
+                            pageToShow = i + 1
+                          } else if (apiPage >= totalApiPages - 2) {
+                            pageToShow = totalApiPages - 4 + i
+                          } else {
+                            pageToShow = apiPage - 2 + i
+                          }
+
+                          if (
+                            pageToShow === 1 ||
+                            pageToShow === totalApiPages ||
+                            (pageToShow >= apiPage - 1 && pageToShow <= apiPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={`api-${pageToShow}`}>
+                                <PaginationLink
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    handleApiPageChange(pageToShow)
+                                  }}
+                                  isActive={apiPage === pageToShow}
+                                >
+                                  {pageToShow}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          } else if (pageToShow === 2 || pageToShow === totalApiPages - 1) {
+                            return (
+                              <PaginationItem key={`api-${pageToShow}`}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            )
+                          }
+                          return null
+                        })}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleApiPageChange(apiPage + 1)
+                            }}
+                            className={apiPage === totalApiPages ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
                 )}
               </div>
             )}

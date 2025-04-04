@@ -1,7 +1,8 @@
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
+
 from app.utils.time import parse_time_control
 from aiocache.serializers import JsonSerializer
 from aiocache import SimpleMemoryCache
@@ -17,18 +18,23 @@ from app.schemas.active_game import ActiveGame, PlayerColor
 
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from app.schemas.game import GameOut, GameResult, GameSummary, OpponentSummary
+from app.schemas.game import GameOut, GameResult, GameSummary, OpponentSummary, PaginatedGames
 
 cache = SimpleMemoryCache(serializer=JsonSerializer())
 
 def map_result(result: GameResult, color: PlayerColor):
+    from app.schemas.active_game import PlayerColor
+    from app.models.game import GameResult
+
+    result = GameResult(result)
+    color = PlayerColor(color)
+
     if result == GameResult.draw:
         return "draw"
     if (result == GameResult.white_win and color == PlayerColor.white) or \
        (result == GameResult.black_win and color == PlayerColor.black):
         return "win"
     return "loss"
-
 
 def get_rating_change(game: Game, color: PlayerColor) -> int:
     if color == PlayerColor.white:
@@ -52,12 +58,25 @@ async def get_game_by_id(game_id: UUID, db: AsyncSession) -> GameOut:
 
     return GameOut.model_validate(game)
 
-async def get_games_by_user(user_id: UUID, page: int, page_size: int, db: AsyncSession) -> List[GameSummary]:
+async def get_games_by_user(user_id: UUID, page: int, page_size: int, db: AsyncSession) -> PaginatedGames:
     offset = (page - 1) * page_size
+
+    total_result = await db.execute(
+        select(func.count())
+        .select_from(Game)
+        .where(
+            or_(Game.white_id == user_id, Game.black_id == user_id),
+            Game.status != GameStatus.active
+        )
+    )
+    total_games = total_result.scalar_one()
 
     result = await db.execute(
         select(Game)
-        .where(or_(Game.white_id == user_id, Game.black_id == user_id))
+        .where(
+            or_(Game.white_id == user_id, Game.black_id == user_id),
+            Game.status != GameStatus.active
+        )
         .options(
             selectinload(Game.white_player).selectinload(User.profile),
             selectinload(Game.black_player).selectinload(User.profile),
@@ -95,7 +114,15 @@ async def get_games_by_user(user_id: UUID, page: int, page_size: int, db: AsyncS
             final_position=game.final_fen
         ))
 
-    return summaries
+    total_pages = (total_games + page_size - 1) // page_size
+
+    return PaginatedGames(
+        games=summaries,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        total_games=total_games
+    )
 
 # Crea y guarda un Game en la base de datos
 async def create_game(
