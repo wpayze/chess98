@@ -103,11 +103,6 @@ spec:
             secretKeyRef:
               name: chess98-secrets
               key: SECRET_KEY
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: chess98-secrets
-              key: POSTGRES_PASSWORD
         # 🔓 No sensibles
         - name: ALGORITHM
           value: HS256

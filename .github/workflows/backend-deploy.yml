@@ -39,7 +39,6 @@ jobs:
       run: |
         kubectl --kubeconfig=kubeconfig.yaml delete secret chess98-secrets --ignore-not-found
         kubectl --kubeconfig=kubeconfig.yaml create secret generic chess98-secrets \
-          --from-literal=POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
           --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
           --from-literal=SECRET_KEY="${{ secrets.SECRET_KEY }}"
 
