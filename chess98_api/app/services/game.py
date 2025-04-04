@@ -1,11 +1,13 @@
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_
 from app.utils.time import parse_time_control
 from aiocache.serializers import JsonSerializer
 from aiocache import SimpleMemoryCache
 from fastapi import HTTPException
 import random
+from typing import List
 
 from app.models.game import Game, GameStatus
 from app.models.user import User 
@@ -15,11 +17,24 @@ from app.schemas.active_game import ActiveGame, PlayerColor
 
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from app.schemas.game import GameOut
-
-import logging
+from app.schemas.game import GameOut, GameResult, GameSummary, OpponentSummary
 
 cache = SimpleMemoryCache(serializer=JsonSerializer())
+
+def map_result(result: GameResult, color: PlayerColor):
+    if result == GameResult.draw:
+        return "draw"
+    if (result == GameResult.white_win and color == PlayerColor.white) or \
+       (result == GameResult.black_win and color == PlayerColor.black):
+        return "win"
+    return "loss"
+
+
+def get_rating_change(game: Game, color: PlayerColor) -> int:
+    if color == PlayerColor.white:
+        return game.white_rating_change or 0
+    else:
+        return game.black_rating_change or 0
 
 async def get_game_by_id(game_id: UUID, db: AsyncSession) -> GameOut:
     result = await db.execute(
@@ -36,6 +51,51 @@ async def get_game_by_id(game_id: UUID, db: AsyncSession) -> GameOut:
         raise HTTPException(status_code=404, detail="Game not found")
 
     return GameOut.model_validate(game)
+
+async def get_games_by_user(user_id: UUID, page: int, page_size: int, db: AsyncSession) -> List[GameSummary]:
+    offset = (page - 1) * page_size
+
+    result = await db.execute(
+        select(Game)
+        .where(or_(Game.white_id == user_id, Game.black_id == user_id))
+        .options(
+            selectinload(Game.white_player).selectinload(User.profile),
+            selectinload(Game.black_player).selectinload(User.profile),
+            selectinload(Game.moves)
+        )
+        .order_by(Game.start_time.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    games = result.scalars().all()
+    summaries = []
+
+    for game in games:
+        is_white = game.white_id == user_id
+        player_color = PlayerColor.white if is_white else PlayerColor.black
+        opponent = game.black_player if is_white else game.white_player
+        rating = game.black_rating if is_white else game.white_rating
+
+        summaries.append(GameSummary(
+            id=game.id,
+            time_control=game.time_control,
+            time_control_str=game.time_control_str,
+            opponent=OpponentSummary(
+                id=opponent.id,
+                username=opponent.username,
+                rating=rating
+            ),
+            player_color=player_color,
+            result=map_result(game.result, player_color),
+            end_reason=game.termination.value if game.termination else "unknown",
+            date=game.end_time or game.start_time,
+            moves=len(game.moves),
+            rating_change=get_rating_change(game, player_color),
+            final_position=game.final_fen
+        ))
+
+    return summaries
 
 # Crea y guarda un Game en la base de datos
 async def create_game(

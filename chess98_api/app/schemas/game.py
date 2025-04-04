@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, Literal
 from enum import Enum
 
 class GameStatus(str, Enum):
@@ -52,6 +52,8 @@ class GameOut(BaseModel):
     result: Optional[str] = None
     termination: Optional[str] = None
 
+    pgn: Optional[str] = None
+
     white_rating: int
     black_rating: int
     white_rating_change: Optional[int] = None
@@ -68,3 +70,24 @@ class GameOut(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True
+
+class OpponentSummary(BaseModel):
+    id: UUID
+    username: str
+    rating: int
+
+class GameSummary(BaseModel):
+    id: UUID
+    time_control: str
+    time_control_str: str
+    opponent: OpponentSummary
+    player_color: Literal['white', 'black']
+    result: Literal['win', 'loss', 'draw']
+    end_reason: str
+    date: datetime
+    moves: int
+    rating_change: int = 0
+    final_position: Optional[str]
+
+    class Config:
+        from_attributes = True

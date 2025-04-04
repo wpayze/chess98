@@ -35,8 +35,12 @@ import {
 import mockGamesData from "@/data/games.json"
 
 // Import types
-import type { Profile, GameSummary, FriendSummary } from "@/models/user"
+import type { Profile, FriendSummary } from "@/models/user"
 import { useAuthStore } from "@/store/auth-store"
+
+// First, import the MiniChessboard component at the top of the file
+import { MiniChessboard } from "@/components/mini-chessboard"
+import { GameSummary } from "@/models/game"
 
 export default function ProfilePage() {
   const params = useParams()
@@ -64,7 +68,7 @@ export default function ProfilePage() {
           date: new Date(game.date),
         })) as GameSummary[]
 
-        // Mock profile data
+        // Mock profile data - always return data regardless of authentication
         setProfile({
           id: "1",
           userId: "1",
@@ -463,15 +467,16 @@ export default function ProfilePage() {
           </TabsList>
 
           {/* Recent Games Tab */}
+
           <TabsContent value="games">
             <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
               <CardHeader>
                 <CardTitle className="text-white">Recent Games</CardTitle>
-                <CardDescription>Last {recentGames.length} games played</CardDescription>
+                <CardDescription>Last {Math.min(recentGames.length, 5)} games played</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentGames.map((game) => (
+                  {recentGames.slice(0, 5).map((game) => (
                     <Link href={`/game/${game.id}`} key={game.id}>
                       <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-3">
@@ -484,6 +489,14 @@ export default function ProfilePage() {
                                   : "bg-slate-500"
                             }`}
                           ></div>
+
+                          {/* Add the mini chessboard */}
+                          <MiniChessboard
+                            fen={game.finalPosition || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"}
+                            size={80}
+                            className="hidden md:block"
+                          />
+
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-white">vs {game.opponent.username}</span>

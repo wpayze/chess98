@@ -74,23 +74,6 @@ export interface Achievement {
   earnedAt: Date
 }
 
-// Game summary for profile display
-export interface GameSummary {
-  id: string
-  timeControl: string
-  opponent: {
-    id: string
-    username: string
-    rating: number
-  }
-  playerColor: "white" | "black"
-  result: "win" | "loss" | "draw"
-  endReason: "checkmate" | "resignation" | "timeout" | "draw" | "stalemate" | "agreement"
-  date: Date
-  moves: number // Number of moves played
-  ratingChange: number // +/- rating change
-}
-
 // Friend model for profile display
 export interface FriendSummary {
   id: string
