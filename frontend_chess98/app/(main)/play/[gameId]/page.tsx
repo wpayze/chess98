@@ -22,6 +22,7 @@ import { Game } from "@/models/play";
 import { useAuthStore } from "@/store/auth-store";
 import { gameplayService } from "@/services/gameplay-service";
 import GameStatus from "@/components/game/game-status";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -31,6 +32,7 @@ const ChessboardComponent = dynamic(
 
 export default function PlayPage() {
   const params = useParams();
+  const isMobile = useIsMobile();
   const gameId = params?.gameId as string;
 
   const { user } = useAuthStore();
@@ -73,6 +75,10 @@ export default function PlayPage() {
   const [isWhiteTurn, setIsWhiteTurn] = useState(true);
   const [gameStarted, setGameStarted] = useState(false);
   const [drawOffered, setDrawOffered] = useState(false);
+  const [inCheckSquare, setInCheckSquare] = useState<string | null>(null);
+
+  const [whiteRatingChange, setWhiteRatingChange] = useState(0);
+  const [blackRatingChange, setBlackRatingChange] = useState(0);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -143,6 +149,14 @@ export default function PlayPage() {
           const Chess = chessModule.Chess;
           const updatedGame = new Chess(data.fen);
           setGameObj(updatedGame);
+
+          if (updatedGame.inCheck()) {
+            const turnColor = updatedGame.turn();
+            const kingSquare = findKingSquare(updatedGame, turnColor);
+            setInCheckSquare(kingSquare);
+          } else {
+            setInCheckSquare(null);
+          }
         }
 
         // Update moves
@@ -181,6 +195,13 @@ export default function PlayPage() {
             data.termination
           )}`;
           customMessage = resultText;
+        }
+
+        if (data.white_rating_change !== undefined && data.white_rating_change !== null) {
+          setWhiteRatingChange(data.white_rating_change);
+        }
+        if (data.black_rating_change !== undefined && data.black_rating_change !== null) {
+          setBlackRatingChange(data.black_rating_change);
         }
 
         setGameResult(resultText);
@@ -320,7 +341,7 @@ export default function PlayPage() {
       const Chess = chessModule.Chess;
       const gameCopy = new Chess(gameObj.fen());
 
-      let promotionChar = piece[1].toLowerCase();
+      const promotionChar = piece[1].toLowerCase();
 
       const move = gameCopy.move({
         from: sourceSquare,
@@ -336,7 +357,6 @@ export default function PlayPage() {
       setGameObj(gameCopy);
       setFen(gameCopy.fen());
 
-      // Send move to server
       const uci = `${sourceSquare}${targetSquare}${move.promotion || ""}`;
       gameplayService.sendMove(uci);
 
@@ -345,6 +365,23 @@ export default function PlayPage() {
       console.error("Move error:", err);
       return false;
     }
+  }
+
+  function findKingSquare(game: any, color: "w" | "b"): string | null {
+    const board = game.board();
+
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const square = board[row][col];
+        if (square && square.type === "k" && square.color === color) {
+          const file = "abcdefgh"[col];
+          const rank = `${8 - row}`;
+          return `${file}${rank}`;
+        }
+      }
+    }
+
+    return null;
   }
 
   const declineDraw = () => {
@@ -377,6 +414,41 @@ export default function PlayPage() {
     setShowDrawConfirmation(false);
   };
 
+  function renderClock({
+    time,
+    isCurrentPlayerTurn,
+    isOpponent,
+    isMobile = false,
+  }: {
+    time: number;
+    isCurrentPlayerTurn: boolean;
+    isOpponent: boolean;
+    isMobile?: boolean;
+  }) {
+    const isLowTime = time <= 60;
+    const isCritical = time <= 10;
+
+    const baseClasses = [
+      "font-mono font-bold text-center mb-1 px-4 py-2 rounded-lg transition-all duration-300",
+      isLowTime &&
+        "text-red-500 border border-red-500 shadow-md shadow-red-500/30",
+      isCritical && "animate-pulse",
+      isCurrentPlayerTurn &&
+        !isLowTime &&
+        "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent border border-indigo-500/40 shadow-md shadow-indigo-500/30",
+      !isCurrentPlayerTurn && !isLowTime && "text-white/80",
+      isOpponent ? "text-4xl md:text-5xl" : "text-4xl md:text-5xl",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      <div className={`${isMobile ?? "p-3"} flex flex-col items-center`}>
+        <div className={baseClasses}>{formatTime(time)}</div>
+      </div>
+    );
+  }
+
   // Format time as mm:ss
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -407,6 +479,45 @@ export default function PlayPage() {
       message
     );
   };
+
+  function renderRatingChangeByColor(
+    isWhite: boolean,
+    whiteRatingChange: number | null,
+    blackRatingChange: number | null
+  ) {
+    const raw = isWhite ? whiteRatingChange : blackRatingChange;
+    const ratingChange = Number(raw);
+    
+    if (!Number.isFinite(ratingChange)) return null;
+  
+    const isPositive = ratingChange > 0;
+    const isZero = ratingChange === 0;
+  
+    const className = isZero
+      ? "text-slate-400"
+      : isPositive
+      ? "text-green-400"
+      : "text-red-400";
+  
+    const sign = isPositive ? "+" : "";
+  
+    return (
+      <span className={`ml-1 text-xs ${className}`}>
+        ({sign}
+        {ratingChange})
+      </span>
+    );
+  }
+  
+
+  const customSquareStyles = inCheckSquare
+    ? {
+        [inCheckSquare]: {
+          backgroundColor: "rgba(239, 68, 68, 0.6)",
+          boxShadow: "inset 0 0 0 3px rgba(220, 38, 38, 0.8)",
+        },
+      }
+    : {};
 
   const isCurrentPlayerTurn =
     (currentPlayerColor === "white" && isWhiteTurn) ||
@@ -459,11 +570,18 @@ export default function PlayPage() {
                   currentPlayerColor == "white" ? "white" : "black"
                 }`}
               ></div>
-              <div className="text-sm">{`${currentPlayerData?.username} (${
-                currentPlayerData?.profile?.ratings[
-                  game?.time_control_str ?? "blitz"
-                ]
-              })`}</div>
+              <div className="text-sm">
+                {`${currentPlayerData?.username} (${
+                  currentPlayerData?.profile?.ratings[
+                    game?.time_control_str ?? "blitz"
+                  ]
+                })`}{" "}
+                {gameStatus !== "active" && renderRatingChangeByColor(
+                  currentPlayerColor === "white",
+                  whiteRatingChange,
+                  blackRatingChange
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <div
@@ -471,11 +589,18 @@ export default function PlayPage() {
                   currentPlayerColor == "white" ? "black" : "white"
                 }`}
               ></div>
-              <div className="text-sm">{`${opponentPlayerData?.username} (${
-                opponentPlayerData?.profile?.ratings[
-                  game?.time_control_str ?? "blitz"
-                ]
-              })`}</div>
+              <div className="text-sm">
+                {`${opponentPlayerData?.username} (${
+                  opponentPlayerData?.profile?.ratings[
+                    game?.time_control_str ?? "blitz"
+                  ]
+                })`}
+                {gameStatus !== "active" && renderRatingChangeByColor(
+                  currentPlayerColor !== "white",
+                  whiteRatingChange,
+                  blackRatingChange
+                )}
+              </div>
             </div>
 
             <div className="mt-3 text-center py-1 border-y border-slate-700/50">
@@ -572,6 +697,45 @@ export default function PlayPage() {
           </div>
         </div>
 
+        {isMobile && (
+          <>
+            <div className="flex justify-center gap-3">
+              <Button
+                className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-red-600/80 hover:to-red-700/80 text-white"
+                size="sm"
+                onClick={openResignConfirmation}
+                disabled={gameStatus !== "active" || !isOpponentReady}
+                variant="outline"
+              >
+                <Flag className="h-3 w-3 mr-1" />
+                <span className="text-xs">Resign</span>
+              </Button>
+              <Button
+                className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-indigo-600/80 hover:to-purple-700/80 text-white"
+                size="sm"
+                onClick={openDrawConfirmation}
+                disabled={gameStatus !== "active" || !isOpponentReady}
+                variant="outline"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                <span className="text-xs">Draw</span>
+              </Button>
+            </div>
+            <div className="flex flex-col items-center">
+              {renderClock({
+                time: currentPlayerColor === "white" ? blackTime : whiteTime,
+                isCurrentPlayerTurn: !isCurrentPlayerTurn,
+                isOpponent: true,
+                isMobile: true,
+              })}
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <div className="text-sm">{opponentPlayerData?.username}</div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Chess board - Center */}
         <div className="flex-1 flex items-center justify-center relative">
           {/* Toggle chat button */}
@@ -586,10 +750,6 @@ export default function PlayPage() {
             ) : (
               <ChevronRight className="h-4 w-4 text-white hidden md:block" />
             )}
-
-            <span className="text-xs text-white md:hidden">
-              {showChat ? "Hide Chat" : "Show Chat"}
-            </span>
           </button>
 
           {/* Chess board */}
@@ -612,6 +772,7 @@ export default function PlayPage() {
                 customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
                 customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
                 showBoardNotation={true}
+                customSquareStyles={customSquareStyles}
               />
             ) : (
               <div className="w-full h-full grid grid-cols-8 grid-rows-8">
@@ -661,26 +822,22 @@ export default function PlayPage() {
         <div className="w-full md:w-72 bg-gradient-to-b from-slate-800/90 to-slate-900/90 text-white flex flex-col border-t md:border-t-0 md:border-l border-slate-700">
           {" "}
           {/* Top player (opponent) */}
-          <div className="p-3 flex flex-col items-center">
-            <div
-              className={`text-5xl font-mono font-bold text-center mb-1 ${
-                !isCurrentPlayerTurn
-                  ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
-                  : "text-white/80"
-              }`}
-            >
-              {currentPlayerColor == "white"
-                ? formatTime(blackTime)
-                : formatTime(whiteTime)}
-            </div>
+          {!isMobile && (
+            <div className="p-3 flex flex-col items-center">
+              {renderClock({
+                time: currentPlayerColor === "white" ? blackTime : whiteTime,
+                isCurrentPlayerTurn: !isCurrentPlayerTurn,
+                isOpponent: true,
+              })}
 
-            <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <div className="text-sm">{opponentPlayerData?.username}</div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <div className="text-sm">{opponentPlayerData?.username}</div>
+              </div>
             </div>
-          </div>
+          )}
           {/* Moves list */}
-          <div className="flex-1 overflow-y-auto border-y border-slate-700 max-h-40 md:max-h-none">
+          <div className="hidden md:block flex-1 overflow-y-auto border-y border-slate-700 max-h-40 md:max-h-none">
             <div className="text-center py-1.5 text-xs font-medium bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700">
               Moves
             </div>
@@ -730,17 +887,12 @@ export default function PlayPage() {
           />
           {/* Bottom player (current player) */}
           <div className="p-3 flex flex-col items-center">
-            <div
-              className={`text-4xl md:text-5xl font-mono font-bold text-center mb-1 ${
-                isCurrentPlayerTurn
-                  ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
-                  : "text-white/80"
-              }`}
-            >
-              {currentPlayerColor == "white"
-                ? formatTime(whiteTime)
-                : formatTime(blackTime)}
-            </div>
+            {renderClock({
+              time: currentPlayerColor === "white" ? whiteTime : blackTime,
+              isCurrentPlayerTurn,
+              isOpponent: false,
+              isMobile: isMobile,
+            })}
 
             <div className="flex items-center gap-1.5 mb-2">
               <div className="w-2 h-2 rounded-full bg-green-500"></div>

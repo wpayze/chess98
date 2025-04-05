@@ -5,6 +5,7 @@ export enum ENDPOINTS {
 
   // User endpoints
   USER_BY_USERNAME = "/users/username/:username",
+  TOP_PLAYERS = "/users/top",
 
   // Game endpoints
   GAME_BY_ID = "/games/:id",

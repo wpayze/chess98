@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from app.cache.game import get_active_game, save_active_game
 from app.ws.manager.game import game_manager
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.game import Game, GameStatus, GameResult, GameTermination
+from app.models.game import GameResult, GameTermination
 from app.services.timer import update_time, apply_increment, now_utc
 from app.schemas.active_game import ActiveGame, PlayerColor
 from app.services.game import handle_game_over 

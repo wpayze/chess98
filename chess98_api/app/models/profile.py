@@ -14,6 +14,10 @@ class TitleEnum(str, Enum):
     FM = "FM"
     CM = "CM"
     NM = "NM"
+    GP = "GP"
+    PI = "PI"
+    FP = "FP"
+    CP = "CP"
 
 class Profile(Base):
     __tablename__ = "profiles"

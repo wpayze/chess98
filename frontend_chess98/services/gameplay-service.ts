@@ -28,6 +28,8 @@ type GameOverMessage = {
     | "insufficient_material"
     | "fifty_move_rule"
     | "threefold_repetition";
+  white_rating_change: number;
+  black_rating_change: number;
 };
 
 type WaitingForOpponentMessage = {

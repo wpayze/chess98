@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Clock, Zap, Hourglass, Trophy, User } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
 import { connectToMatchmaking, disconnect } from "@/services/matchmaking-service"
+import TopPlayersRanking from "@/components/top-players-ranking"
 
 export default function Home() {
   const router = useRouter()
@@ -15,7 +16,7 @@ export default function Home() {
   const timeControls = [
     { name: "Bullet", icon: Zap, options: ["1+0", "1+1", "2+1"] },
     { name: "Blitz", icon: Clock, options: ["3+0", "3+2", "5+0"] },
-    { name: "Rapid", icon: Hourglass, options: ["10+0", "15+10"] },
+    { name: "Rapid", icon: Hourglass, options: ["10+0", "10+5", "15+10"] },
     { name: "Classical", icon: Trophy, options: ["30+0", "30+20"] },
   ]
 
@@ -91,6 +92,8 @@ export default function Home() {
             )
           })}
         </div>
+
+        <TopPlayersRanking />
       </div>
 
       {/* Looking for match popup (only for authenticated users) */}

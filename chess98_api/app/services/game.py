@@ -20,7 +20,8 @@ from app.schemas.active_game import ActiveGame, PlayerColor
 import logging
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from app.schemas.game import GameOut, GameResult, GameSummary, OpponentSummary, PaginatedGames, GameTermination
+from app.schemas.game import GameOut, GameSummary, OpponentSummary, PaginatedGames
+from app.models.game import GameResult, GameTermination
 from app.utils.elo import update_ratings
 
 cache = SimpleMemoryCache(serializer=JsonSerializer())
@@ -266,6 +267,8 @@ async def handle_game_over(
     await game_manager.broadcast_to_game(game_id, {
         "type": "game_over",
         "result": result.value,
-        "termination": termination.value
+        "termination": termination.value,
+        "white_rating_change": white_change,
+        "black_rating_change": black_change
     })
 

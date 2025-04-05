@@ -34,6 +34,7 @@
     "@radix-ui/react-tabs": "^1.1.3",
     "autoprefixer": "^10.4.20",
     "chess.js": "^1.1.0",
+    "chess98-fe": "file:",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.454.0",

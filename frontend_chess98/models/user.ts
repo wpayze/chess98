@@ -74,6 +74,14 @@ export interface Achievement {
   earnedAt: Date
 }
 
+export type TopPlayer = {
+  id: string;
+  username: string;
+  rating: number;
+  title: string | null;
+};
+
+
 // Friend model for profile display
 export interface FriendSummary {
   id: string
@@ -84,3 +92,8 @@ export interface FriendSummary {
   lastActive: Date
 }
 
+export type TopPlayersResponse = {
+  bullet: TopPlayer[];
+  blitz: TopPlayer[];
+  rapid: TopPlayer[];
+};
