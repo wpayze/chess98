@@ -3,7 +3,7 @@ from app.models.game import GameResult
 def expected_score(rating_a: int, rating_b: int) -> float:
     return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
 
-def update_ratings(white_rating: int, black_rating: int, result: GameResult, k: int = 32) -> tuple[int, int]:
+def update_ratings(white_rating: int, black_rating: int, result: GameResult, k: int = 20) -> tuple[int, int]:
     """
     Retorna la diferencia de ELO para ambos jugadores como (white_change, black_change)
     """
