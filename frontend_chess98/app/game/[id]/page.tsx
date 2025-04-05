@@ -29,6 +29,9 @@ import {
 import dynamic from "next/dynamic";
 import { gameService } from "@/services/game-service";
 import type { Game } from "@/models/play";
+import { StockfishService } from "@/services/stockfish-service";
+import { Square } from "react-chessboard/dist/chessboard/types";
+import { SimpleEvaluationBar } from "@/components/simple-evaluation-bar";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -69,10 +72,26 @@ export default function GameViewPage() {
   const [processedMoves, setProcessedMoves] = useState<ProcessedMove[]>([]);
   const [chessModule, setChessModule] = useState<any>(null);
 
-  const currentMoveIndexRef = useRef(0)
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [stockfishService, setStockfishService] =
+    useState<StockfishService | null>(null);
+
+  const [currentEvaluation, setCurrentEvaluation] = useState<number>(0);
+  const [currentDepth, setCurrentDepth] = useState<number | null>(null);
+  const [mateIn, setMateIn] = useState<number | null>(null);
+
+  const currentMoveIndexRef = useRef(0);
   useEffect(() => {
-    currentMoveIndexRef.current = currentMoveIndex
-  }, [currentMoveIndex])
+    currentMoveIndexRef.current = currentMoveIndex;
+  }, [currentMoveIndex]);
+
+  const [bestArrow, setBestArrow] = useState<[Square, Square] | null>(null);
+  const [evaluation, setEvaluation] = useState<{
+    score: string;
+    bestMove?: string;
+    pv?: string[];
+  } | null>(null);
 
   // Load chess.js
   useEffect(() => {
@@ -87,6 +106,110 @@ export default function GameViewPage() {
 
     loadChessJs();
   }, []);
+
+  useEffect(() => {
+    // Creamos el service, pero no iniciamos el worker hasta que se requiera análisis
+    const sfService = new StockfishService();
+
+    sfService.setOnMessageCallback((message) => {
+      setAnalysis(message);
+
+      if (message.startsWith("info")) {
+        const parsed = parseEvaluation(message);
+
+        if (parsed?.score) {
+          setEvaluation(parsed);
+
+          let turn = "w"; // fallback seguro
+          if (fen && fen.includes(" ")) {
+            turn = fen.split(" ")[1];
+          }
+
+          if (parsed.score.includes("Mate")) {
+            const mate = parseInt(parsed.score.replace("Mate in ", ""));
+            const adjusted = turn === "b" ? -mate : mate;
+            setMateIn(adjusted);
+            setCurrentEvaluation(adjusted > 0 ? 100 : -100);
+          } else {
+            const cp = parseFloat(parsed.score);
+            const adjusted = turn === "b" ? -cp : cp;
+            setCurrentEvaluation(adjusted);
+            setMateIn(null);
+          }
+
+          // Depth
+          const match = message.match(/depth (\d+)/);
+          if (match) {
+            setCurrentDepth(parseInt(match[1]));
+          }
+
+          // Best arrow
+          if (parsed.bestMove && parsed.bestMove.length >= 4) {
+            const from = parsed.bestMove.slice(0, 2) as Square;
+            const to = parsed.bestMove.slice(2, 4) as Square;
+            setBestArrow([from, to]);
+          }
+        }
+      }
+    });
+
+    setStockfishService(sfService);
+
+    // Limpieza: en este ejemplo, podrías terminar el worker cuando el componente se desmonte
+    return () => {
+      sfService.terminate();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAnalyzing && stockfishService) {
+      stockfishService.stopAnalysis();
+  
+      setTimeout(() => {
+        stockfishService.startAnalysis(fen, 20);
+        setEvaluation(null);
+        setBestArrow(null);
+      }, 50);
+    }
+  }, [fen]);
+
+  const handleToggleAnalyze = () => {
+    if (!stockfishService) return;
+
+    if (isAnalyzing) {
+      stockfishService.stopAnalysis();
+      setEvaluation(null);
+      setBestArrow(null);
+      setIsAnalyzing(false);
+    } else {
+      stockfishService.startAnalysis(fen, 20);
+      setIsAnalyzing(true);
+    }
+  };
+
+  function parseEvaluation(message: string): {
+    score: string;
+    bestMove?: string;
+    pv?: string[];
+  } | null {
+    if (!message.startsWith("info")) return null;
+
+    const scoreMatch = message.match(/score (cp|mate) (-?\d+)/);
+    const bestMoveMatch = message.match(/pv ([a-h][1-8][a-h][1-8][qrbn]?)/);
+    const pvMatch = message.match(/pv ((?:[a-h][1-8][a-h][1-8][qrbn]? ?)+)/);
+
+    if (!scoreMatch) return null;
+
+    const [_, type, value] = scoreMatch;
+    const score =
+      type === "cp" ? `${(+value / 100).toFixed(2)}` : `Mate in ${value}`;
+
+    return {
+      score,
+      bestMove: bestMoveMatch?.[1],
+      pv: pvMatch?.[1]?.trim().split(" "),
+    };
+  }
 
   const isValidPgn = (pgn: string): boolean => {
     return /\d+\.\s*[a-zA-Z]/.test(pgn);
@@ -297,40 +420,42 @@ export default function GameViewPage() {
     if (isPlaying) {
       // Stop playback
       if (playbackInterval) {
-        clearTimeout(playbackInterval)
-        setPlaybackInterval(null)
+        clearTimeout(playbackInterval);
+        setPlaybackInterval(null);
       }
-      setIsPlaying(false)
+      setIsPlaying(false);
     } else {
       // Start playback
-      setIsPlaying(true)
+      setIsPlaying(true);
 
       // Create a recursive function that uses the ref for current position
       const playNextMove = () => {
         // Use the ref to get the current position
-        const nextMoveIndex = currentMoveIndexRef.current + 1
+        const nextMoveIndex = currentMoveIndexRef.current + 1;
 
         // Calculate the total number of moves
-        const moveCount = processedMoves.length * 2 - (processedMoves[processedMoves.length - 1]?.black ? 0 : 1)
+        const moveCount =
+          processedMoves.length * 2 -
+          (processedMoves[processedMoves.length - 1]?.black ? 0 : 1);
 
         // Check if we've reached the end
         if (nextMoveIndex > moveCount) {
-          setIsPlaying(false)
-          return
+          setIsPlaying(false);
+          return;
         }
 
         // Go to the next move
-        goToMove(nextMoveIndex)
+        goToMove(nextMoveIndex);
 
         // Schedule the next move
-        const timeout = setTimeout(playNextMove, playbackSpeed)
-        setPlaybackInterval(timeout as unknown as NodeJS.Timeout)
-      }
+        const timeout = setTimeout(playNextMove, playbackSpeed);
+        setPlaybackInterval(timeout as unknown as NodeJS.Timeout);
+      };
 
       // Start the playback
-      playNextMove()
+      playNextMove();
     }
-  }
+  };
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -419,6 +544,18 @@ export default function GameViewPage() {
     return `${resultText} ${game.termination}`;
   };
 
+  const formatEvaluation = () => {
+    if (mateIn !== null) return `Mate in ${mateIn}`;
+    return `${currentEvaluation > 0 ? "+" : ""}${currentEvaluation.toFixed(2)}`;
+  };
+
+  const getEvaluationTextColor = () => {
+    if (mateIn !== null) return "text-red-500";
+    if (currentEvaluation > 0.3) return "text-green-400";
+    if (currentEvaluation < -0.3) return "text-red-400";
+    return "text-slate-200";
+  };  
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/90 py-4 pb-8 flex flex-col">
       <div className="container mx-auto px-4 flex-1 flex flex-col">
@@ -447,6 +584,31 @@ export default function GameViewPage() {
               <span className="text-sm text-slate-400">
                 {formatDate(game.start_time)}
               </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <div className="flex items-center gap-4">
+            {/* Barra */}
+            <div className="w-full max-w-[120px]">
+              <SimpleEvaluationBar score={currentEvaluation} className="h-12" />
+            </div>
+
+            {/* Texto */}
+            <div className="flex-1">
+              <div className={`text-xl font-bold ${getEvaluationTextColor()}`}>
+                {formatEvaluation()}
+              </div>
+
+              <div className="text-xs text-slate-400">
+                Depth: {currentDepth ?? "-"} | Score:{" "}
+                {mateIn !== null
+                  ? `Mate in ${mateIn}`
+                  : `${
+                      currentEvaluation > 0 ? "+" : ""
+                    }${currentEvaluation.toFixed(2)}`}
+              </div>
             </div>
           </div>
         </div>
@@ -495,6 +657,7 @@ export default function GameViewPage() {
                     }}
                     customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
                     customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
+                    customArrows={bestArrow ? [bestArrow] : []}
                   />
                 </div>
 
@@ -611,9 +774,10 @@ export default function GameViewPage() {
                     variant="outline"
                     size="sm"
                     className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-xs h-7"
+                    onClick={handleToggleAnalyze}
                   >
                     <RotateCcw className="h-3 w-3 mr-1" />
-                    Analyze
+                    Analyze {isAnalyzing ? "Stop" : ""}
                   </Button>
                 </div>
               </CardContent>
