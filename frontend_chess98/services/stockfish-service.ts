@@ -8,8 +8,8 @@ export class StockfishService {
 
   constructor(scriptPath?: string) {
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    this.scriptPath = scriptPath || (isMobile
-      ? "/stockfish-17-lite-single.js"
+    this.scriptPath = scriptPath || (!isMobile
+      ? "/stockfish-17-lite.js"
       : "/stockfish-17.js");
   }
 
