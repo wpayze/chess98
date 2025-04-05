@@ -39,10 +39,6 @@ export default function LoginPage() {
 
   // Clear error when inputs change
   useEffect(() => {
-    if (error) {
-      clearError()
-    }
-
     // Clear validation errors when inputs change
     if (formSubmitted) {
       setEmailError(validateEmail(email))

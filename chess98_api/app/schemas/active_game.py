@@ -19,6 +19,7 @@ class ActiveGame(BaseModel):
     # ⏱ Control de tiempo
     initial_time: int  # segundos iniciales
     increment: int     # segundos por jugada
+    time_control_str: str
     #TODO hacer un enum de time controls para que no se pueda enviar cualquier time control.
 
     white_time_remaining: int
@@ -34,6 +35,9 @@ class ActiveGame(BaseModel):
     disconnected_players: List[UUID] = Field(default_factory=list)
     paused: bool = False
     status: str = "active"
+
+    white_rating: int
+    black_rating: int
 
     class Config:
         from_attributes = True

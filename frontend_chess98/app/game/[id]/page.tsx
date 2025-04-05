@@ -72,7 +72,6 @@ export default function GameViewPage() {
   const [processedMoves, setProcessedMoves] = useState<ProcessedMove[]>([]);
   const [chessModule, setChessModule] = useState<any>(null);
 
-  const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [stockfishService, setStockfishService] =
     useState<StockfishService | null>(null);
@@ -82,16 +81,21 @@ export default function GameViewPage() {
   const [mateIn, setMateIn] = useState<number | null>(null);
 
   const currentMoveIndexRef = useRef(0);
+  const fenRef = useRef<string>("");
+
+  const chosenDepth = 25;
+
   useEffect(() => {
     currentMoveIndexRef.current = currentMoveIndex;
   }, [currentMoveIndex]);
 
+  useEffect(() => {
+    if (fen) {
+      fenRef.current = fen;
+    }
+  }, [fen]);
+
   const [bestArrow, setBestArrow] = useState<[Square, Square] | null>(null);
-  const [evaluation, setEvaluation] = useState<{
-    score: string;
-    bestMove?: string;
-    pv?: string[];
-  } | null>(null);
 
   // Load chess.js
   useEffect(() => {
@@ -108,69 +112,81 @@ export default function GameViewPage() {
   }, []);
 
   useEffect(() => {
-    // Creamos el service, pero no iniciamos el worker hasta que se requiera análisis
     const sfService = new StockfishService();
 
     sfService.setOnMessageCallback((message) => {
-      setAnalysis(message);
+      if (!message.startsWith("info")) return;
 
-      if (message.startsWith("info")) {
-        const parsed = parseEvaluation(message);
+      const parsed = parseEvaluation(message);
+      const currentFen = fenRef.current;
+      if (!parsed || !currentFen.includes(" ")) return;
 
-        if (parsed?.score) {
-          setEvaluation(parsed);
-
-          let turn = "w"; // fallback seguro
-          if (fen && fen.includes(" ")) {
-            turn = fen.split(" ")[1];
-          }
-
-          if (parsed.score.includes("Mate")) {
-            const mate = parseInt(parsed.score.replace("Mate in ", ""));
-            const adjusted = turn === "b" ? -mate : mate;
-            setMateIn(adjusted);
-            setCurrentEvaluation(adjusted > 0 ? 100 : -100);
-          } else {
-            const cp = parseFloat(parsed.score);
-            const adjusted = turn === "b" ? -cp : cp;
-            setCurrentEvaluation(adjusted);
-            setMateIn(null);
-          }
-
-          // Depth
-          const match = message.match(/depth (\d+)/);
-          if (match) {
-            setCurrentDepth(parseInt(match[1]));
-          }
-
-          // Best arrow
-          if (parsed.bestMove && parsed.bestMove.length >= 4) {
-            const from = parsed.bestMove.slice(0, 2) as Square;
-            const to = parsed.bestMove.slice(2, 4) as Square;
-            setBestArrow([from, to]);
-          }
+      let turn = "w";
+      if (currentFen && currentFen.includes(" ")) {
+        const parts = currentFen.split(" ");
+        if (parts.length >= 2) {
+          turn = parts[1];
         }
+      }
+
+      // Ajustar score según turno
+      const adjustedScore = turn === "b" ? -parsed.score : parsed.score;
+
+      if (parsed.scoreType === "mate") {
+        setMateIn(adjustedScore); // positivo: da mate, negativo: recibe mate
+        setCurrentEvaluation(adjustedScore > 0 ? 100 : -100); // barra al máximo
+      } else {
+        setMateIn(null);
+        setCurrentEvaluation(adjustedScore);
+      }
+
+      // Extraer profundidad
+      const match = message.match(/depth (\d+)/);
+      if (match) {
+        setCurrentDepth(parseInt(match[1], 10));
+      }
+
+      // Flecha de mejor jugada
+      if (parsed.bestMove && parsed.bestMove.length >= 4) {
+        const from = parsed.bestMove.slice(0, 2) as Square;
+        const to = parsed.bestMove.slice(2, 4) as Square;
+        setBestArrow([from, to]);
       }
     });
 
     setStockfishService(sfService);
 
-    // Limpieza: en este ejemplo, podrías terminar el worker cuando el componente se desmonte
     return () => {
       sfService.terminate();
     };
   }, []);
 
   useEffect(() => {
-    if (isAnalyzing && stockfishService) {
-      stockfishService.stopAnalysis();
-  
-      setTimeout(() => {
-        stockfishService.startAnalysis(fen, 20);
-        setEvaluation(null);
-        setBestArrow(null);
-      }, 50);
-    }
+    let isCancelled = false;
+
+    const analyze = async () => {
+      if (!isAnalyzing || !stockfishService) return;
+      try {
+        setCurrentEvaluation(0);
+        setMateIn(null);
+        setCurrentDepth(null);
+        await stockfishService.restartAnalysis(fen, chosenDepth);
+        if (!isCancelled) {
+          setBestArrow(null);
+        }
+      } catch (err) {
+        console.error("Error during analysis:", err);
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      analyze();
+    }, 150);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeout);
+    };
   }, [fen]);
 
   const handleToggleAnalyze = () => {
@@ -178,17 +194,17 @@ export default function GameViewPage() {
 
     if (isAnalyzing) {
       stockfishService.stopAnalysis();
-      setEvaluation(null);
       setBestArrow(null);
       setIsAnalyzing(false);
     } else {
-      stockfishService.startAnalysis(fen, 20);
+      stockfishService.startAnalysis(fen, chosenDepth);
       setIsAnalyzing(true);
     }
   };
 
   function parseEvaluation(message: string): {
-    score: string;
+    scoreType: "cp" | "mate";
+    score: number;
     bestMove?: string;
     pv?: string[];
   } | null {
@@ -201,10 +217,12 @@ export default function GameViewPage() {
     if (!scoreMatch) return null;
 
     const [_, type, value] = scoreMatch;
-    const score =
-      type === "cp" ? `${(+value / 100).toFixed(2)}` : `Mate in ${value}`;
+    const numericValue = parseInt(value, 10);
+
+    const score = type === "cp" ? numericValue / 100 : numericValue;
 
     return {
+      scoreType: type as "cp" | "mate",
       score,
       bestMove: bestMoveMatch?.[1],
       pv: pvMatch?.[1]?.trim().split(" "),
@@ -554,7 +572,7 @@ export default function GameViewPage() {
     if (currentEvaluation > 0.3) return "text-green-400";
     if (currentEvaluation < -0.3) return "text-red-400";
     return "text-slate-200";
-  };  
+  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/90 py-4 pb-8 flex flex-col">
@@ -570,7 +588,19 @@ export default function GameViewPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-              {game.white_player.username} vs {game.black_player.username}
+              <Link
+                href={`/profile/${game.white_player.username}`}
+                className="hover:underline"
+              >
+                {game.white_player.username}
+              </Link>{" "}
+              vs{" "}
+              <Link
+                href={`/profile/${game.black_player.username}`}
+                className="hover:underline"
+              >
+                {game.black_player.username}
+              </Link>
             </h1>
             <div className="flex flex-wrap gap-2 items-center">
               <Badge className="bg-slate-700 text-slate-300">

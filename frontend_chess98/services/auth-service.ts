@@ -22,42 +22,6 @@ class AuthService extends ApiService {
       body: JSON.stringify(userData),
     })
   }
-
-  /**
-   * Refresh the access token
-   */
-  async refreshToken(token: string): Promise<{ access_token: string }> {
-    return this.fetchWithAuth<{ access_token: string }>(ENDPOINTS.REFRESH_TOKEN, token, {
-      method: "POST",
-    })
-  }
-
-  /**
-   * Get the current user profile
-   */
-  async getCurrentUser(token: string): Promise<User> {
-    return this.fetchWithAuth<User>(ENDPOINTS.CURRENT_USER, token)
-  }
-
-  /**
-   * Request password reset
-   */
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    return this.fetchPublic<{ message: string }>(ENDPOINTS.FORGOT_PASSWORD, {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    })
-  }
-
-  /**
-   * Reset password with token
-   */
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
-    return this.fetchPublic<{ message: string }>(ENDPOINTS.RESET_PASSWORD, {
-      method: "POST",
-      body: JSON.stringify({ token, password: newPassword }),
-    })
-  }
 }
 
 // Export a singleton instance

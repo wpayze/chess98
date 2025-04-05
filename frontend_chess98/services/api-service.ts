@@ -44,7 +44,7 @@ export class ApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `API error: ${response.status}`)
+      throw new Error(errorData.detail || errorData.message || `API error: ${response.status}`)
     }
 
     return response.json()

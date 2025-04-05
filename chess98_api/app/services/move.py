@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.game import Game, GameStatus, GameResult, GameTermination
 from app.services.timer import update_time, apply_increment, now_utc
 from app.schemas.active_game import ActiveGame, PlayerColor
+from app.services.game import handle_game_over 
 import logging
 
 class InvalidMove(Exception):
@@ -74,7 +75,7 @@ async def handle_move(game_id: UUID, user_id: UUID, uci_move: str, db: AsyncSess
 async def check_game_end(
     game_id: UUID,
     board: chess.Board,
-    active_game,
+    active_game: ActiveGame,
     db: AsyncSession
 ):
     if board.is_game_over():
@@ -102,50 +103,24 @@ async def check_game_end(
             result = GameResult.draw
             termination = GameTermination.fifty_move_rule
 
-        # Guardar en la base de datos
-        game = await db.get(Game, game_id)
-        game.result = result
-        game.termination = termination
-        game.status = GameStatus.completed
-        game.final_fen = board.fen()
-        game.pgn = "\n".join(active_game.moves_san)
-        game.end_time = datetime.now(timezone.utc)
+        if result and termination:
+            await handle_game_over(game_id, active_game, result, termination, db)
 
-        await db.commit()
-
-        # Notificar a los jugadores
-        await game_manager.broadcast_to_game(game_id, {
-            "type": "game_over",
-            "result": result.value,
-            "termination": termination.value
-        })
-
-        logging.info(f"🏁 Partida {game_id} terminada por {termination.value}")
-
-async def handle_timeout_loss(game_id: UUID, loser_color: PlayerColor, active_game: ActiveGame, db: AsyncSession):
+async def handle_timeout_loss(
+    game_id: UUID,
+    loser_color: PlayerColor,
+    active_game: ActiveGame,
+    db: AsyncSession
+):
     result = (
         GameResult.black_win if loser_color == PlayerColor.white else GameResult.white_win
     )
+    termination = GameTermination.timeout
 
     # Actualizar estado en caché
-    active_game.status = GameTermination.timeout.value
+    active_game.status = termination.value
     await save_active_game(active_game)
 
-    # Guardar resultado en DB
-    game = await db.get(Game, game_id)
-    game.status = GameStatus.completed
-    game.result = result
-    game.termination = GameTermination.timeout
-    game.final_fen = active_game.current_fen
-    game.pgn = "\n".join(active_game.moves_san)
-    game.end_time = datetime.now(timezone.utc)
-    await db.commit()
-
-    # Notificar a ambos jugadores
-    await game_manager.broadcast_to_game(game_id, {
-        "type": "game_over",
-        "termination": GameTermination.timeout.value,
-        "result": result.value,
-    })
+    await handle_game_over(game_id, active_game, result, termination, db)
 
     logging.info(f"🏁 Juego {game_id} finalizado por timeout. Perdedor: {loser_color}")

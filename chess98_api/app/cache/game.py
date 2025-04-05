@@ -20,7 +20,7 @@ cache = SimpleMemoryCache(serializer=JsonSerializer())
 
 def _key(game_id: UUID) -> str:
     return f"active_game:{game_id}"
-
+#TODO PASAR TODO EL CACHE A REDIS :(
 #CORRECTA: 
 # async def get_active_game(game_id: UUID) -> Optional[ActiveGame]:
 #     data = await cache.get(_key(game_id))
@@ -59,6 +59,9 @@ async def get_active_game(game_id: UUID) -> Optional[ActiveGame]:
             last_move_timestamp=None,
             moves_san=[],
             moves_uci=[],
+            white_rating=game.white_rating,
+            black_rating=game.black_rating,
+            time_control_str=game.time_control_str
         )
 
         await cache.set(cache_key, reconstructed.model_dump(mode="json"), ttl=3600)

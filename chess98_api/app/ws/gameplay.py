@@ -32,6 +32,12 @@ async def websocket_game(
 
     # 🎯 Marcar como reconectado si estaba en `disconnected_players`
     active_game = await get_active_game(game_id)
+
+    if not active_game:
+        logging.error(f"[ws_game] No se encontró ActiveGame en cache para game_id={game_id}")
+        await websocket.close(code=4004)
+        return
+
     if user_id in active_game.disconnected_players:
         active_game.disconnected_players.remove(user_id)
         await save_active_game(active_game)

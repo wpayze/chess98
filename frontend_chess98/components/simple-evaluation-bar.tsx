@@ -44,11 +44,6 @@ export function SimpleEvaluationBar({ score = 0, depth = 10, className = "" }: S
         className="absolute top-0 left-0 w-full bg-white transition-all duration-300 ease-out"
         style={{ height: `${percentage}%` }}
       />
-
-      {/* Score display */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`font-bold text-lg ${getTextColor()}`}>{formatScore()}</span>
-      </div>
     </div>
   )
 }

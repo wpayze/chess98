@@ -1,24 +1,27 @@
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, func
 
 from app.utils.time import parse_time_control
 from aiocache.serializers import JsonSerializer
 from aiocache import SimpleMemoryCache
 from fastapi import HTTPException
 import random
-from typing import List
+from app.ws.manager.game import game_manager
 
 from app.models.game import Game, GameStatus
 from app.models.user import User 
 
+from app.services.profile import get_profile_by_user_id
+
 from app.schemas import QueuedPlayer
 from app.schemas.active_game import ActiveGame, PlayerColor
-
+import logging
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from app.schemas.game import GameOut, GameResult, GameSummary, OpponentSummary, PaginatedGames
+from app.schemas.game import GameOut, GameResult, GameSummary, OpponentSummary, PaginatedGames, GameTermination
+from app.utils.elo import update_ratings
 
 cache = SimpleMemoryCache(serializer=JsonSerializer())
 
@@ -162,6 +165,14 @@ async def create_game_and_active_game(
     random.shuffle(players)
     white, black = players[0], players[1]
 
+    white_profile = await get_profile_by_user_id(white.user_id, db)
+    black_profile = await get_profile_by_user_id(black.user_id, db)
+
+    rating_type = white.time_control_str  # e.g., 'bullet', 'blitz', etc.
+
+    white_rating = white_profile.ratings.get(rating_type, 1200)
+    black_rating = black_profile.ratings.get(rating_type, 1200)
+
     # Crear partida en la base de datos
     game = await create_game(
         db=db,
@@ -169,28 +180,92 @@ async def create_game_and_active_game(
         black_id=black.user_id,
         time_control=white.time_control,
         time_control_str=white.time_control_str,
-        white_rating=1200,
-        black_rating=1200
+        white_rating=white_rating,
+        black_rating=black_rating
     )
 
-    initial_time, increment = parse_time_control(game.time_control)
-
+    #initial_time, increment = parse_time_control(game.time_control)
+    # TODO Esto tiene que ir a redis.
     # Crear el estado activo en caché
-    active_game = ActiveGame(
-        game_id=game.id,
-        white_id=white.user_id,
-        black_id=black.user_id,
-        current_fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        turn=PlayerColor.white,
-        white_time_remaining=initial_time,
-        black_time_remaining=initial_time,
-        initial_time=initial_time,
-        increment=increment,
-        last_move_timestamp=None,
-        moves_san=[],
-        moves_uci=[],
-        status="active"
+    # active_game = ActiveGame(
+    #     game_id=game.id,
+    #     white_id=white.user_id,
+    #     black_id=black.user_id,
+    #     current_fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    #     turn=PlayerColor.white,
+    #     white_time_remaining=initial_time,
+    #     black_time_remaining=initial_time,
+    #     initial_time=initial_time,
+    #     increment=increment,
+    #     last_move_timestamp=None,
+    #     moves_san=[],
+    #     moves_uci=[],
+    #     status="active",
+    #     white_rating=white_rating,
+    #     black_rating=black_rating
+    # )
+
+    #await cache.set(f"active_game:{game.id}", active_game.model_dump(mode="json"), ttl=3600)
+    return game.id
+
+async def handle_game_over(
+    game_id: UUID,
+    active_game: ActiveGame,
+    result: GameResult,
+    termination: GameTermination,
+    db: AsyncSession
+):
+    white_change, black_change = update_ratings(
+        white_rating=active_game.white_rating,
+        black_rating=active_game.black_rating,
+        result=result
     )
 
-    await cache.set(f"active_game:{game.id}", active_game.model_dump(mode="json"), ttl=3600)
-    return game.id
+    white_profile = await get_profile_by_user_id(active_game.white_id, db)
+    black_profile = await get_profile_by_user_id(active_game.black_id, db)
+
+    time_control = active_game.time_control_str
+
+    # ✅ Reasignar el dict completo para que SQLAlchemy lo detecte
+    ratings_white = dict(white_profile.ratings)
+    ratings_white[time_control] += white_change
+    white_profile.ratings = ratings_white
+
+    ratings_black = dict(black_profile.ratings)
+    ratings_black[time_control] += black_change
+    black_profile.ratings = ratings_black
+
+    # 📊 Estadísticas
+    white_profile.total_games += 1
+    black_profile.total_games += 1
+
+    if result == GameResult.white_win:
+        white_profile.wins += 1
+        black_profile.losses += 1
+    elif result == GameResult.black_win:
+        black_profile.wins += 1
+        white_profile.losses += 1
+    else:
+        white_profile.draws += 1
+        black_profile.draws += 1
+
+    # 📝 Guardar resultado en la base de datos
+    game = await db.get(Game, game_id)
+    game.status = GameStatus.completed
+    game.result = result
+    game.termination = termination
+    game.final_fen = active_game.current_fen
+    game.pgn = "\n".join(active_game.moves_san)
+    game.end_time = datetime.now(timezone.utc)
+    game.white_rating_change = white_change
+    game.black_rating_change = black_change
+
+    await db.commit()
+
+    # 📢 Notificar a los jugadores
+    await game_manager.broadcast_to_game(game_id, {
+        "type": "game_over",
+        "result": result.value,
+        "termination": termination.value
+    })
+

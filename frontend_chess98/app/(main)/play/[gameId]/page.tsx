@@ -190,15 +190,15 @@ export default function PlayPage() {
         setChatMessages((prev) => [...prev, { sender: from, message }]);
       },
       onDrawOfferReceived: ({ from }) => {
-        console.log({from, user})
+        console.log({ from, user });
         if (from === user.id) return;
 
         setDrawOffered(true);
         addSystemMessage("Opponent offered a draw.");
       },
-      onDrawOfferDeclined: ({from}) => { 
-        addSystemMessage("Draw declined.")
-      }
+      onDrawOfferDeclined: ({ from }) => {
+        addSystemMessage("Draw declined.");
+      },
     });
 
     return () => {
@@ -348,10 +348,10 @@ export default function PlayPage() {
   }
 
   const declineDraw = () => {
-    setDrawOffered(false); 
-    addSystemMessage("Draw declined.")
-    gameplayService.sendDrawDecline()
-  }
+    setDrawOffered(false);
+    addSystemMessage("Draw declined.");
+    gameplayService.sendDrawDecline();
+  };
 
   // Replace the handleResign function with this:
   const openResignConfirmation = () => {
@@ -402,8 +402,6 @@ export default function PlayPage() {
     if (!currentPlayerData?.username) return;
     if (!message) return;
 
-    console.log({MENSAJE: message});
-
     gameplayService.sendChatMessageWebSocket(
       currentPlayerData.username,
       message
@@ -430,15 +428,18 @@ export default function PlayPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/90 flex flex-col">
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
         {/* Left sidebar - Chat */}
         <div
-          className={`w-64 bg-gradient-to-b from-slate-800/90 to-slate-900/90 text-white flex flex-col border-r border-slate-700 transition-all duration-300 ease-in-out ${
+          className={`${
+            showChat ? "h-64 md:h-auto md:w-64" : "h-0 md:w-0"
+          } bg-gradient-to-b from-slate-800/90 to-slate-900/90 text-white flex flex-col border-r border-slate-700 transition-all duration-300 ease-in-out overflow-hidden md:overflow-visible ${
             showChat
-              ? "opacity-100 translate-x-0"
-              : "opacity-0 -translate-x-full w-0"
+              ? "opacity-100 translate-y-0 md:translate-x-0"
+              : "opacity-0 -translate-y-full md:-translate-x-full"
           }`}
         >
+          {" "}
           <div className="p-3 border-b border-slate-700">
             <div className="text-sm text-indigo-300 mb-1">{`${
               game?.time_control
@@ -485,7 +486,6 @@ export default function PlayPage() {
                 : "Game in progress"}
             </div>
           </div>
-
           <div className="flex border-b border-slate-700">
             <button className="w-full py-2 text-center text-sm bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 transition-colors">
               Chat
@@ -496,7 +496,6 @@ export default function PlayPage() {
           </button>
           */}
           </div>
-
           <div className="flex-1 overflow-y-auto p-2">
             {chatMessages.map((msg, i) => (
               <div key={i} className="mb-1.5 text-xs">
@@ -513,7 +512,6 @@ export default function PlayPage() {
               </div>
             ))}
           </div>
-
           <div className="p-2 border-t border-slate-700">
             <form
               onSubmit={(e) => {
@@ -579,19 +577,23 @@ export default function PlayPage() {
           {/* Toggle chat button */}
           <button
             onClick={() => setShowChat(!showChat)}
-            className={`fixed top-1/2 transform -translate-y-1/2 transition-all duration-300 z-10 p-1 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-r-md shadow-md ${
-              showChat ? "left-[256px]" : "left-0"
+            className={`fixed md:top-1/2 bottom-4 md:bottom-auto md:transform md:-translate-y-1/2 transition-all duration-300 z-10 p-1 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-md md:rounded-r-md shadow-md ${
+              showChat ? "left-4 md:left-[256px]" : "left-4 md:left-0"
             }`}
           >
             {showChat ? (
-              <ChevronLeft className="h-4 w-4 text-white" />
+              <ChevronLeft className="h-4 w-4 text-white hidden md:block" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-white" />
+              <ChevronRight className="h-4 w-4 text-white hidden md:block" />
             )}
+
+            <span className="text-xs text-white md:hidden">
+              {showChat ? "Hide Chat" : "Show Chat"}
+            </span>
           </button>
 
           {/* Chess board */}
-          <div className="w-[min(80vh,600px)] h-[min(80vh,600px)] rounded-lg overflow-hidden shadow-lg relative">
+          <div className="w-full max-w-[min(95vw,600px)] h-[min(95vw,600px)] md:w-[min(80vh,600px)] md:h-[min(80vh,600px)] mx-auto rounded-lg overflow-hidden shadow-lg relative">
             {chessModule ? (
               <ChessboardComponent
                 id="BasicBoard"
@@ -656,7 +658,8 @@ export default function PlayPage() {
         </div>
 
         {/* Right sidebar - Game info */}
-        <div className="w-72 bg-gradient-to-b from-slate-800/90 to-slate-900/90 text-white flex flex-col border-l border-slate-700">
+        <div className="w-full md:w-72 bg-gradient-to-b from-slate-800/90 to-slate-900/90 text-white flex flex-col border-t md:border-t-0 md:border-l border-slate-700">
+          {" "}
           {/* Top player (opponent) */}
           <div className="p-3 flex flex-col items-center">
             <div
@@ -676,9 +679,8 @@ export default function PlayPage() {
               <div className="text-sm">{opponentPlayerData?.username}</div>
             </div>
           </div>
-
           {/* Moves list */}
-          <div className="flex-1 overflow-y-auto border-y border-slate-700">
+          <div className="flex-1 overflow-y-auto border-y border-slate-700 max-h-40 md:max-h-none">
             <div className="text-center py-1.5 text-xs font-medium bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700">
               Moves
             </div>
@@ -714,7 +716,6 @@ export default function PlayPage() {
               )}
             </div>
           </div>
-
           {/* Game status */}
           <GameStatus
             gameStatus={gameStatus}
@@ -727,11 +728,10 @@ export default function PlayPage() {
             }}
             onDeclineDraw={declineDraw}
           />
-
           {/* Bottom player (current player) */}
           <div className="p-3 flex flex-col items-center">
             <div
-              className={`text-5xl font-mono font-bold text-center mb-1 ${
+              className={`text-4xl md:text-5xl font-mono font-bold text-center mb-1 ${
                 isCurrentPlayerTurn
                   ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
                   : "text-white/80"
