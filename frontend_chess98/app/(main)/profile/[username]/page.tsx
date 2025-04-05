@@ -68,8 +68,14 @@ export default function ProfilePage() {
         //Get Profile by Username
         // not yet implemented! TODO userService.getByUsername
 
-        const gameResponse = await gameService.getGameByUsername(username, 1, 5);
-        const profileResponse = await profileService.getProfileByUsername(username);
+        const gameResponse = await gameService.getGameByUsername(
+          username,
+          1,
+          5
+        );
+        const profileResponse = await profileService.getProfileByUsername(
+          username
+        );
 
         setProfile(profileResponse);
         setRecentGames(gameResponse.games);
@@ -181,7 +187,10 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="relative">
               <Avatar className="w-32 h-32 border-4 border-indigo-500/30">
-                <AvatarImage src={profile.avatar_url ?? ""} alt={profile.display_name} />
+                <AvatarImage
+                  src={profile.avatar_url ?? ""}
+                  alt={profile.display_name}
+                />
                 <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-2xl text-white">
                   {profile.display_name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
@@ -267,7 +276,11 @@ export default function ProfilePage() {
                 <div className="flex flex-col items-center p-2 bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-lg">
                   <span className="text-sm text-slate-400">Win %</span>
                   <span className="text-xl font-bold text-white">
-                    {(profile.wins / profile.total_games) * 100}%
+                    {profile.total_games > 0
+                      ? `${((profile.wins / profile.total_games) * 100).toFixed(
+                          1
+                        )}%`
+                      : "0%"}
                   </span>
                 </div>
                 <div className="flex flex-col items-center p-2 bg-gradient-to-br from-slate-800/70 to-slate-900/70 rounded-lg">
@@ -290,15 +303,11 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex items-center">
                   <div className="w-3 h-3 rounded-full bg-red-500 mr-1"></div>
-                  <span className="text-slate-300">
-                    {profile.losses} L
-                  </span>
+                  <span className="text-slate-300">{profile.losses} L</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-3 h-3 rounded-full bg-slate-500 mr-1"></div>
-                  <span className="text-slate-300">
-                    {profile.draws} D
-                  </span>
+                  <span className="text-slate-300">{profile.draws} D</span>
                 </div>
               </div>
             </div>
@@ -566,16 +575,13 @@ export default function ProfilePage() {
                   <CardTitle className="text-white">Friends</CardTitle>
                   <div className="flex gap-2">
                     <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">
-                      {/* {profile.friends.length} Friends */}
-                      1 Friend
+                      {/* {profile.friends.length} Friends */}1 Friend
                     </Badge>
                     <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-                      {/* {profile.following.length} Following */}
-                      0 Following
+                      {/* {profile.following.length} Following */}0 Following
                     </Badge>
                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                      {/* {profile.followers.length} Followers */}
-                      0 Followers
+                      {/* {profile.followers.length} Followers */}0 Followers
                     </Badge>
                   </div>
                 </div>

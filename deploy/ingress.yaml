@@ -31,7 +31,19 @@ spec:
             port:
               number: 80
 
+  - host: adminer.chess98.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: adminer
+            port:
+              number: 8080
+
   tls:
   - hosts:
     - chess98.com
     - api.chess98.com
+    - adminer.chess98.com
