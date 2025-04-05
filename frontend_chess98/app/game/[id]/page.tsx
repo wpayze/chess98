@@ -80,6 +80,9 @@ export default function GameViewPage() {
   const [currentDepth, setCurrentDepth] = useState<number | null>(null);
   const [mateIn, setMateIn] = useState<number | null>(null);
 
+  const [engineLoading, setEngineLoading] = useState(true);
+  const [engineName, setEngineName] = useState("");
+
   const currentMoveIndexRef = useRef(0);
   const fenRef = useRef<string>("");
 
@@ -113,9 +116,16 @@ export default function GameViewPage() {
 
   useEffect(() => {
     const sfService = new StockfishService();
+    setEngineName(sfService.getScriptPath());
+    setEngineLoading(true);
 
     sfService.setOnMessageCallback((message) => {
+      if (message.includes("uciok")) {
+        setEngineLoading(false);
+      }
+
       if (!message.startsWith("info")) return;
+      setEngineLoading(false);
 
       const parsed = parseEvaluation(message);
       const currentFen = fenRef.current;
@@ -627,18 +637,24 @@ export default function GameViewPage() {
 
             {/* Texto */}
             <div className="flex-1">
-              <div className={`text-xl font-bold ${getEvaluationTextColor()}`}>
-                {formatEvaluation()}
-              </div>
+              {engineLoading && isAnalyzing ? (
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <span>Loading engine...</span>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={`text-xl font-bold ${getEvaluationTextColor()}`}
+                  >
+                    {formatEvaluation()}
+                  </div>
 
-              <div className="text-xs text-slate-400">
-                Depth: {currentDepth ?? "-"} | Score:{" "}
-                {mateIn !== null
-                  ? `Mate in ${mateIn}`
-                  : `${
-                      currentEvaluation > 0 ? "+" : ""
-                    }${currentEvaluation.toFixed(2)}`}
-              </div>
+                  <div className="text-xs text-slate-400">
+                    Depth: {currentDepth ?? "-"} | Engine: {engineName}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -688,6 +704,7 @@ export default function GameViewPage() {
                     customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
                     customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
                     customArrows={bestArrow ? [bestArrow] : []}
+                    arePiecesDraggable={false}
                   />
                 </div>
 

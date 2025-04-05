@@ -4,31 +4,36 @@ export class StockfishService {
   private worker: Worker | null = null;
   private onMessageCallback: StockfishCallback | null = null;
   private analyzing: boolean = false;
+  private scriptPath: string;
+
+  constructor(scriptPath?: string) {
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    this.scriptPath = scriptPath || (isMobile
+      ? "/stockfish-17-lite-single.js"
+      : "/stockfish-17.js");
+  }
 
   /**
    * Inicializa el worker si aún no existe.
-   * Usa stockfish-17-lite-single.js directamente (ya es un worker).
    */
   private initWorker() {
     if (!this.worker) {
-      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const workerScript = isMobile
-        ? "/stockfish-17-lite-single.js"
-        : "/stockfish-17.js";
-  
-      this.worker = new Worker(workerScript);
-  
+      this.worker = new Worker(this.scriptPath);
+
       this.worker.onmessage = (e: MessageEvent) => {
         if (this.onMessageCallback) {
           this.onMessageCallback(e.data);
         }
       };
-  
+
       this.postMessage("uci");
       this.postMessage("ucinewgame");
     }
-  }  
+  }
 
+  /**
+   * Espera hasta que el motor esté listo (`readyok`).
+   */
   public waitUntilReady(): Promise<void> {
     return new Promise((resolve) => {
       const handler = (e: MessageEvent) => {
@@ -57,7 +62,7 @@ export class StockfishService {
   }
 
   /**
-   * Envía un mensaje (comando UCI) al motor.
+   * Envía un comando UCI al motor.
    */
   private postMessage(command: string) {
     if (this.worker) {
@@ -66,7 +71,7 @@ export class StockfishService {
   }
 
   /**
-   * Inicia el análisis continuo con la posición actual (FEN).
+   * Inicia análisis para una posición dada.
    */
   public startAnalysis(fen: string, depth: number = 20) {
     this.initWorker();
@@ -75,20 +80,21 @@ export class StockfishService {
     this.analyzing = true;
   }
 
+  /**
+   * Reinicia análisis después de detener y esperar readiness.
+   */
   public async restartAnalysis(fen: string, depth: number = 20) {
     if (!this.worker) return;
 
-    this.stopAnalysis(); // Detenemos el actual
-    await this.waitUntilReady(); // Esperamos que esté listo
-
-    // Recién ahí arrancamos el nuevo análisis
+    this.stopAnalysis();
+    await this.waitUntilReady();
     this.postMessage(`position fen ${fen}`);
     this.postMessage(`go depth ${depth}`);
     this.analyzing = true;
   }
 
   /**
-   * Detiene el análisis si está en curso.
+   * Detiene análisis actual si está en curso.
    */
   public stopAnalysis() {
     if (this.worker && this.analyzing) {
@@ -98,7 +104,7 @@ export class StockfishService {
   }
 
   /**
-   * Alterna entre analizar y detener análisis.
+   * Alterna entre analizar y detener.
    */
   public toggleAnalysis(fen: string) {
     if (this.analyzing) {
@@ -109,7 +115,7 @@ export class StockfishService {
   }
 
   /**
-   * Termina el worker completamente.
+   * Termina completamente el worker.
    */
   public terminate() {
     if (this.worker) {
@@ -117,5 +123,12 @@ export class StockfishService {
       this.worker = null;
       this.analyzing = false;
     }
+  }
+
+  /**
+   * Devuelve el nombre del script cargado (para mostrar en UI).
+   */
+  public getScriptPath(): string {
+    return this.scriptPath;
   }
 }
