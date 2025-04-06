@@ -14,6 +14,7 @@ type GameStartMessage = {
   initial_fen: string;
   your_time: number;
   opponent_time: number;
+  turn: "white" | "black";
 };
 
 type GameOverMessage = {
@@ -52,6 +53,11 @@ type ChatMessageReceived = {
   message: string;
 };
 
+type ReconnectedMessage = {
+  type: "reconnected";
+  message: string;
+}
+
 type IncomingMessage =
   | GameStartMessage
   | MoveMadeMessage
@@ -60,6 +66,7 @@ type IncomingMessage =
   | ChatMessageReceived
   | DrawOfferReceivedMessage
   | DrawOfferDeclinedMessage
+  | ReconnectedMessage
   | any;
 
 type OutgoingMoveMessage = {
@@ -77,6 +84,7 @@ export class GameplayService {
       onWaitingForOpponent,
       onGameReady,
       onMoveMade,
+      onReconnected,
       onGameOver,
       onDrawOfferReceived,
       onDrawOfferDeclined,
@@ -89,6 +97,7 @@ export class GameplayService {
       onDrawOfferReceived?: (msg: DrawOfferReceivedMessage) => void;
       onChatMessage?: (msg: ChatMessageReceived) => void;
       onDrawOfferDeclined?: (msg: ChatMessageReceived) => void;
+      onReconnected: (msg: ReconnectedMessage) => void;
     }
   ) {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
@@ -113,6 +122,9 @@ export class GameplayService {
           case "game_start":
             onGameReady?.(data);
             break;
+          case "reconnected":
+            onReconnected?.(data);
+            break;
           case "move_made":
             onMoveMade?.(data);
             break;
@@ -132,7 +144,7 @@ export class GameplayService {
             console.warn("Unhandled message type:", data);
         }
       } catch (error) {
-        console.error("Invalid WebSocket message:", event.data);
+        console.error("Invalid WebSocket message:", {event: event.data, error});
       }
     };
 

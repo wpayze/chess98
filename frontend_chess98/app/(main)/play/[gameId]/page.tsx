@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,20 +37,20 @@ export default function PlayPage() {
 
   const { user } = useAuthStore();
 
+  const gameObjRef = useRef<any>(null);
+
   // State for the game
-  const [fen, setFen] = useState(
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-  ); // Initial position
+  const [fen, setFen] = useState<string | null>(null);
   const [chessModule, setChessModule] = useState<any>(null);
-  const [gameObj, setGameObj] = useState<any>(null);
   const [gameStatus, setGameStatus] = useState("active"); // active, canceled, finished
   const [gameResult, setGameResult] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(true);
-  const [turn, setTurn] = useState("w"); // w for white, b for black
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState([
     { sender: "system", message: "Connecting to game server..." },
   ]);
   const [game, setGame] = useState<Game | null>(null);
+  const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
 
   // Opponent loading state
   const [isOpponentReady, setIsOpponentReady] = useState(false);
@@ -79,7 +79,10 @@ export default function PlayPage() {
 
   const [whiteRatingChange, setWhiteRatingChange] = useState(0);
   const [blackRatingChange, setBlackRatingChange] = useState(0);
-
+  const [lastMoveFrom, setLastMoveFrom] = useState<string | null>(null);
+  const [lastMoveTo, setLastMoveTo] = useState<string | null>(null);
+  const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
+  const promotionDataRef = useRef<{ from: string; to: string; piece: string } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   //Data
@@ -95,6 +98,17 @@ export default function PlayPage() {
 
   const [isUserReady, setIsUserReady] = useState(false);
 
+  function checkIfInCheck(game: any) {
+    if (game.inCheck()) {
+      const turnColor = game.turn();
+      const kingSquare = findKingSquare(game, turnColor);
+      setInCheckSquare(kingSquare);
+    } else {
+      setInCheckSquare(null);
+    }
+  }
+  
+
   useEffect(() => {
     if (user) {
       setIsUserReady(true);
@@ -107,10 +121,6 @@ export default function PlayPage() {
       try {
         const chessModule = await import("chess.js");
         setChessModule(chessModule);
-        const Chess = chessModule.Chess;
-        const game = new Chess();
-        setGameObj(game);
-        console.log("Chess.js loaded successfully");
       } catch (error) {
         console.error("Error loading chess.js:", error);
       }
@@ -132,8 +142,18 @@ export default function PlayPage() {
         setFen(data.initial_fen);
         setWhiteTime(data.your_time);
         setBlackTime(data.opponent_time);
+        setIsWhiteTurn(data.turn === "white");
         addSystemMessage("Opponent has joined the game.");
         addSystemMessage("Game started. Good luck!");
+
+        if (chessModule) {
+          const Chess = chessModule.Chess;
+          gameObjRef.current = new Chess(data.initial_fen);
+        }
+      },
+      onReconnected: () => {
+        setGameStarted(true);
+        addSystemMessage("You reconnected to the game.")
       },
       onMoveMade: (data) => {
         if (!gameStarted) setGameStarted(true);
@@ -141,23 +161,22 @@ export default function PlayPage() {
         setFen(data.fen);
         setWhiteTime(data.white_time);
         setBlackTime(data.black_time);
-        setTurn(data.turn === "white" ? "w" : "b");
         setIsWhiteTurn(data.turn === "white");
-
-        // Update chess.js game state
-        if (chessModule) {
+        
+        if (gameObjRef.current) {
+          gameObjRef.current.load(data.fen);
+          checkIfInCheck(gameObjRef.current);
+        } else if (chessModule) {
+          console.warn("Reloaded chess module")
           const Chess = chessModule.Chess;
-          const updatedGame = new Chess(data.fen);
-          setGameObj(updatedGame);
-
-          if (updatedGame.inCheck()) {
-            const turnColor = updatedGame.turn();
-            const kingSquare = findKingSquare(updatedGame, turnColor);
-            setInCheckSquare(kingSquare);
-          } else {
-            setInCheckSquare(null);
-          }
+          gameObjRef.current = new Chess(data.fen);
+          checkIfInCheck(gameObjRef.current);
         }
+        
+        const from = data.uci?.substring(0, 2);
+        const to = data.uci?.substring(2, 4);
+        setLastMoveFrom(from);
+        setLastMoveTo(to);
 
         // Update moves
         setMoves((prev) => {
@@ -197,10 +216,16 @@ export default function PlayPage() {
           customMessage = resultText;
         }
 
-        if (data.white_rating_change !== undefined && data.white_rating_change !== null) {
+        if (
+          data.white_rating_change !== undefined &&
+          data.white_rating_change !== null
+        ) {
           setWhiteRatingChange(data.white_rating_change);
         }
-        if (data.black_rating_change !== undefined && data.black_rating_change !== null) {
+        if (
+          data.black_rating_change !== undefined &&
+          data.black_rating_change !== null
+        ) {
           setBlackRatingChange(data.black_rating_change);
         }
 
@@ -320,11 +345,89 @@ export default function PlayPage() {
     }
   }
 
-  function onDrop(sourceSquare: string, targetSquare: string, piece: string) {
-    if (!gameObj || !chessModule || !isOpponentReady || !game) {
-      console.error(
-        "Chess module, game object not loaded, or opponent not ready"
+  function handleSquareClick(square: string) {
+    const game = gameObjRef.current;
+    if (!game || gameStatus !== "active") return;;
+
+    const playerColor = currentPlayerColor === "white" ? "w" : "b";
+    const pieceAtSquare = game.get(square);
+
+    console.log({ pieceAtSquare });
+
+    if (selectedSquare === square) {
+      setSelectedSquare(null);
+      setSelectedPiece(null);
+      return;
+    }
+
+    if (!selectedSquare) {
+      if (pieceAtSquare?.color === playerColor) {
+        setSelectedSquare(square);
+        setSelectedPiece(
+          `${pieceAtSquare.color}${pieceAtSquare.type.toUpperCase()}`
+        );
+      }
+      return;
+    }
+
+    if (pieceAtSquare?.color === playerColor) {
+      setSelectedSquare(square);
+      setSelectedPiece(
+        `${pieceAtSquare.color}${pieceAtSquare.type.toUpperCase()}`
       );
+      return;
+    }
+
+    if (selectedPiece) {
+      const isPromotion =
+        selectedPiece[1] === "P" &&
+        ((currentPlayerColor === "white" && square[1] === "8") ||
+         (currentPlayerColor === "black" && square[1] === "1"));
+    
+      if (isPromotion) {
+        promotionDataRef.current = {
+          from: selectedSquare,
+          to: square,
+          piece: selectedPiece,
+        };
+        console.log("OPEN PROMOTION!")
+        setIsPromotionDialogOpen(true);
+        return;
+      }
+    
+      handleMove(selectedSquare, square, selectedPiece);
+    }
+    
+  }
+
+  function safeMove(
+    game: any,
+    from: string,
+    to: string,
+    promotion: string
+  ): any | null {
+    const legalMoves = game.moves({ square: from, verbose: true });
+    const found = legalMoves.find((m: any) => m.to === to);
+
+    if (!found) return null;
+
+    const move = game.move({
+      from,
+      to,
+      promotion,
+    });
+
+    return move ?? null;
+  }
+
+  function handleMove(
+    sourceSquare: string,
+    targetSquare: string,
+    piece: string
+  ): boolean {
+    const game = gameObjRef.current;
+    if (!game || !chessModule || !isOpponentReady || !game) {
+      console.error("Chess module, game object not loaded, or opponent not ready");
       return false;
     }
 
@@ -338,33 +441,32 @@ export default function PlayPage() {
     }
 
     try {
-      const Chess = chessModule.Chess;
-      const gameCopy = new Chess(gameObj.fen());
-
       const promotionChar = piece[1].toLowerCase();
-
-      const move = gameCopy.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: promotionChar,
-      });
-
+      const move = safeMove(game, sourceSquare, targetSquare, promotionChar);
+      
       if (!move) {
-        console.warn("Illegal move:", sourceSquare, targetSquare);
+        debugger;
+        console.log("No move: ", move);
         return false;
       }
-
-      setGameObj(gameCopy);
-      setFen(gameCopy.fen());
+      
+      setFen(game.fen());
 
       const uci = `${sourceSquare}${targetSquare}${move.promotion || ""}`;
       gameplayService.sendMove(uci);
+
+      setSelectedSquare(null);
+      setSelectedPiece(null);
 
       return true;
     } catch (err) {
       console.error("Move error:", err);
       return false;
     }
+  }
+
+  function onDrop(sourceSquare: string, targetSquare: string, piece: string) {
+    return handleMove(sourceSquare, targetSquare, piece);
   }
 
   function findKingSquare(game: any, color: "w" | "b"): string | null {
@@ -426,7 +528,7 @@ export default function PlayPage() {
     isMobile?: boolean;
   }) {
     const isLowTime = time <= 60;
-    const isCritical = time <= 10;
+    const isCritical = time <= 5;
 
     const baseClasses = [
       "font-mono font-bold text-center mb-1 px-4 py-2 rounded-lg transition-all duration-300",
@@ -487,20 +589,20 @@ export default function PlayPage() {
   ) {
     const raw = isWhite ? whiteRatingChange : blackRatingChange;
     const ratingChange = Number(raw);
-    
+
     if (!Number.isFinite(ratingChange)) return null;
-  
+
     const isPositive = ratingChange > 0;
     const isZero = ratingChange === 0;
-  
+
     const className = isZero
       ? "text-slate-400"
       : isPositive
       ? "text-green-400"
       : "text-red-400";
-  
+
     const sign = isPositive ? "+" : "";
-  
+
     return (
       <span className={`ml-1 text-xs ${className}`}>
         ({sign}
@@ -508,16 +610,32 @@ export default function PlayPage() {
       </span>
     );
   }
-  
 
-  const customSquareStyles = inCheckSquare
-    ? {
+  const boardStyles = useMemo(() => {
+    return {
+      ...(inCheckSquare && {
         [inCheckSquare]: {
           backgroundColor: "rgba(239, 68, 68, 0.6)",
           boxShadow: "inset 0 0 0 3px rgba(220, 38, 38, 0.8)",
         },
-      }
-    : {};
+      }),
+      ...(selectedSquare && {
+        [selectedSquare]: {
+          backgroundColor: "rgba(255, 215, 0, 0.4)",
+        },
+      }),
+      ...(lastMoveFrom && {
+        [lastMoveFrom]: {
+          backgroundColor:  "rgba(144, 238, 144, 0.25)",
+        },
+      }),
+      ...(lastMoveTo && {
+        [lastMoveTo]: {
+          backgroundColor:  "rgba(144, 238, 144, 0.25)",
+        },
+      }),
+    };
+  }, [inCheckSquare, selectedSquare, lastMoveFrom, lastMoveTo]);
 
   const isCurrentPlayerTurn =
     (currentPlayerColor === "white" && isWhiteTurn) ||
@@ -576,11 +694,12 @@ export default function PlayPage() {
                     game?.time_control_str ?? "blitz"
                   ]
                 })`}{" "}
-                {gameStatus !== "active" && renderRatingChangeByColor(
-                  currentPlayerColor === "white",
-                  whiteRatingChange,
-                  blackRatingChange
-                )}
+                {gameStatus !== "active" &&
+                  renderRatingChangeByColor(
+                    currentPlayerColor === "white",
+                    whiteRatingChange,
+                    blackRatingChange
+                  )}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -595,11 +714,12 @@ export default function PlayPage() {
                     game?.time_control_str ?? "blitz"
                   ]
                 })`}
-                {gameStatus !== "active" && renderRatingChangeByColor(
-                  currentPlayerColor !== "white",
-                  whiteRatingChange,
-                  blackRatingChange
-                )}
+                {gameStatus !== "active" &&
+                  renderRatingChangeByColor(
+                    currentPlayerColor !== "white",
+                    whiteRatingChange,
+                    blackRatingChange
+                  )}
               </div>
             </div>
 
@@ -754,14 +874,15 @@ export default function PlayPage() {
 
           {/* Chess board */}
           <div className="w-full max-w-[min(95vw,600px)] h-[min(95vw,600px)] md:w-[min(80vh,600px)] md:h-[min(80vh,600px)] mx-auto rounded-lg overflow-hidden shadow-lg relative">
-            {chessModule ? (
+            {chessModule && fen ? (
               <ChessboardComponent
                 id="BasicBoard"
                 arePremovesAllowed={true}
                 clearPremovesOnRightClick={true}
                 animationDuration={200}
                 position={fen}
-                onPieceDrop={gameStatus === "active" ? onDrop : () => false}
+                onPieceDrop={onDrop}
+                onSquareClick={handleSquareClick}
                 boardOrientation={
                   currentPlayerColor === "black" ? "black" : "white"
                 }
@@ -772,7 +893,24 @@ export default function PlayPage() {
                 customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
                 customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
                 showBoardNotation={true}
-                customSquareStyles={customSquareStyles}
+                customSquareStyles={boardStyles}
+                promotionDialogVariant={"modal"}
+                showPromotionDialog={isPromotionDialogOpen}
+                onPromotionPieceSelect={(piece, from, to) => {
+                  if (promotionDataRef.current) {
+                    // Fue click-to-move
+                    const selectedPiece = promotionDataRef.current.piece;
+                    const refFrom = promotionDataRef.current.from;
+                    const refTo = promotionDataRef.current.to;
+                    promotionDataRef.current = null;
+                    setIsPromotionDialogOpen(false);
+                    return handleMove(refFrom, refTo, piece??"");
+                  } 
+                  
+                  if (!piece || !from || !to) return false;
+                  handleMove(from, to, piece);
+                  return true;
+                }}
               />
             ) : (
               <div className="w-full h-full grid grid-cols-8 grid-rows-8">

@@ -18,7 +18,7 @@ class UserRole(Enum):
 
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
@@ -29,12 +29,23 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     two_factor_enabled = Column(Boolean, default=False)
-    
+
     profile = relationship("Profile", back_populates="user", uselist=False)
     settings = relationship("Settings", back_populates="user", uselist=False)
     games_as_white = relationship("Game", back_populates="white_player", foreign_keys="[Game.white_id]")
     games_as_black = relationship("Game", back_populates="black_player", foreign_keys="[Game.black_id]")
-    
-    achievements = relationship("Achievement", secondary="user_achievements", back_populates="users")
-    user_achievements = relationship("UserAchievement", back_populates="user")
+
+    user_achievements = relationship(
+        "UserAchievement",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        overlaps="achievements"
+    )
+    achievements = relationship(
+        "Achievement",
+        secondary="user_achievements",
+        back_populates="users",
+        overlaps="user_achievements,achievement"
+    )
+
     friends = relationship("Friend", foreign_keys="[Friend.user_id]", back_populates="user")

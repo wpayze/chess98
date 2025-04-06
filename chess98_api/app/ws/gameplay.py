@@ -30,7 +30,6 @@ async def websocket_game(
     # ✅ Conectamos
     game_manager.connect(game_id, user_id, websocket)
 
-    # 🎯 Marcar como reconectado si estaba en `disconnected_players`
     active_game = await get_active_game(game_id)
 
     if not active_game:
@@ -65,10 +64,13 @@ async def websocket_game(
     black_connected = game_manager.get(game_id, game.black_id)
 
     if white_connected and black_connected:
+        active_game.paused = False
+        await save_active_game(active_game)
         await game_manager.broadcast_to_game(game_id, {
             "type": "game_start",
             "game_id": str(game_id),
             "initial_fen": active_game.current_fen,
+            "turn": active_game.turn,
             "your_time": active_game.white_time_remaining if user_id == game.white_id else active_game.black_time_remaining,
             "opponent_time": active_game.black_time_remaining if user_id == game.white_id else active_game.white_time_remaining,
         })

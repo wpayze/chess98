@@ -6,7 +6,7 @@ from app.core.config import DATABASE_URL
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL no está configurado en las variables de entorno.")
 
-async_engine = create_async_engine(DATABASE_URL, echo=True)
+async_engine = create_async_engine(DATABASE_URL, echo=False)
 
 AsyncSessionLocal = sessionmaker(
     bind=async_engine,

@@ -20,7 +20,7 @@ import {
   SkipForward,
   Play,
   Pause,
-  Share,
+  Activity,
   Download,
   Flag,
   RotateCcw,
@@ -32,6 +32,7 @@ import type { Game } from "@/models/play";
 import { StockfishService } from "@/services/stockfish-service";
 import { Square } from "react-chessboard/dist/chessboard/types";
 import { SimpleEvaluationBar } from "@/components/simple-evaluation-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -82,11 +83,13 @@ export default function GameViewPage() {
 
   const [engineLoading, setEngineLoading] = useState(true);
   const [engineName, setEngineName] = useState("");
+  const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
 
   const currentMoveIndexRef = useRef(0);
   const fenRef = useRef<string>("");
 
   const chosenDepth = 25;
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     currentMoveIndexRef.current = currentMoveIndex;
@@ -211,6 +214,10 @@ export default function GameViewPage() {
       setIsAnalyzing(true);
     }
   };
+
+  const handleRotateBoard = () => {
+    setBoardOrientation((prev) => (prev === "white" ? "black" : "white"));
+  };  
 
   function parseEvaluation(message: string): {
     scoreType: "cp" | "mate";
@@ -496,15 +503,43 @@ export default function GameViewPage() {
 
   // Handle PGN download
   const handleDownloadPgn = () => {
-    if (!game) return;
+    if (!game || processedMoves.length === 0) return;
 
-    const blob = new Blob([game.pgn], { type: "text/plain" });
+    // Fecha formateada
+    const date = new Date(game.start_time).toISOString().split("T")[0];
+
+    // Cabecera PGN estándar
+    const header = [
+      `[Event "Online Game"]`,
+      `[Site "Chess98"]`,
+      `[Date "${date}"]`,
+      `[White "${game.white_player.username}"]`,
+      `[Black "${game.black_player.username}"]`,
+      `[Result "*"]`,
+      game.opening ? `[Opening "${game.opening}"]` : "",
+      game.time_control ? `[TimeControl "${game.time_control}"]` : "",
+      "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    let moveText = "";
+    for (const move of processedMoves) {
+      moveText += `${move.moveNumber}. ${move.white.move} `;
+      if (move.black?.move) {
+        moveText += `${move.black.move} `;
+      }
+    }
+
+    moveText += "*";
+
+    const fullPgn = `${header}\n${moveText.trim()}`;
+
+    const blob = new Blob([fullPgn], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${game.white_player.username}_vs_${
-      game.black_player.username
-    }_${new Date(game.start_time).toISOString().split("T")[0]}.pgn`;
+    a.download = `${game.white_player.username}_vs_${game.black_player.username}_${date}.pgn`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -583,6 +618,9 @@ export default function GameViewPage() {
     if (currentEvaluation < -0.3) return "text-red-400";
     return "text-slate-200";
   };
+
+  const arrowButtonsSize = isMobile ? "h-10 w-10" : "h-8 w-8";
+  const arrowIconsSize = isMobile ? "h-5 w-5" : "h-3 w-3";
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/90 py-4 pb-8 flex flex-col">
@@ -696,7 +734,7 @@ export default function GameViewPage() {
                   <ChessboardComponent
                     id="GameViewer"
                     position={fen}
-                    boardOrientation="white"
+                    boardOrientation={boardOrientation}
                     customBoardStyle={{
                       borderRadius: "0.5rem",
                       boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
@@ -737,38 +775,41 @@ export default function GameViewPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 h-8 w-8 p-0"
+                    className={`border-slate-700 bg-slate-800/50 hover:bg-slate-700 p-0 ${arrowButtonsSize}`}
                     onClick={goToStart}
                     disabled={currentMoveIndex === 0}
                   >
-                    <SkipBack className="h-3 w-3" />
+                    <SkipBack className={arrowIconsSize} />
                   </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 h-8 w-8 p-0"
+                    className={`border-slate-700 bg-slate-800/50 hover:bg-slate-700 p-0 ${arrowButtonsSize}`}
                     onClick={goToPrevious}
                     disabled={currentMoveIndex === 0}
                   >
-                    <ChevronLeft className="h-3 w-3" />
+                    <ChevronLeft className={arrowIconsSize} />
                   </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 h-8 w-8 p-0"
+                    className={`border-slate-700 bg-slate-800/50 hover:bg-slate-700 p-0 ${arrowButtonsSize}`}
                     onClick={togglePlayback}
                     disabled={processedMoves.length === 0}
                   >
                     {isPlaying ? (
-                      <Pause className="h-3 w-3" />
+                      <Pause className={arrowIconsSize} />
                     ) : (
-                      <Play className="h-3 w-3" />
+                      <Play className={arrowIconsSize} />
                     )}
                   </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 h-8 w-8 p-0"
+                    className={`border-slate-700 bg-slate-800/50 hover:bg-slate-700 p-0 ${arrowButtonsSize}`}
                     onClick={goToNext}
                     disabled={
                       processedMoves.length === 0 ||
@@ -779,12 +820,13 @@ export default function GameViewPage() {
                             : 1)
                     }
                   >
-                    <ChevronRight className="h-3 w-3" />
+                    <ChevronRight className={arrowIconsSize} />
                   </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 h-8 w-8 p-0"
+                    className={`border-slate-700 bg-slate-800/50 hover:bg-slate-700 p-0 ${arrowButtonsSize}`}
                     onClick={goToEnd}
                     disabled={
                       processedMoves.length === 0 ||
@@ -795,7 +837,7 @@ export default function GameViewPage() {
                             : 1)
                     }
                   >
-                    <SkipForward className="h-3 w-3" />
+                    <SkipForward className={arrowIconsSize} />
                   </Button>
                 </div>
 
@@ -804,9 +846,10 @@ export default function GameViewPage() {
                     variant="outline"
                     size="sm"
                     className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-xs h-7"
+                    onClick={handleRotateBoard}
                   >
-                    <Share className="h-3 w-3 mr-1" />
-                    Share
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Rotate
                   </Button>
                   <Button
                     variant="outline"
@@ -823,7 +866,7 @@ export default function GameViewPage() {
                     className="border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-xs h-7"
                     onClick={handleToggleAnalyze}
                   >
-                    <RotateCcw className="h-3 w-3 mr-1" />
+                    <Activity className="h-4 w-4 mr-2" />
                     Analyze {isAnalyzing ? "Stop" : ""}
                   </Button>
                 </div>
