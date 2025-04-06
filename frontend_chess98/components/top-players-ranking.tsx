@@ -113,7 +113,9 @@ export default function TopPlayersRanking() {
                                 3
                               </span>
                             ) : (
-                              index + 1
+                              <span className="flex items-center justify-center w-7 h-7 rounded-full">
+                                {index + 1}
+                              </span>
                             )}
                           </td>
                           <td className="py-3 px-4">
