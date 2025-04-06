@@ -83,7 +83,9 @@ export default function GameViewPage() {
 
   const [engineLoading, setEngineLoading] = useState(true);
   const [engineName, setEngineName] = useState("");
-  const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
+  const [boardOrientation, setBoardOrientation] = useState<"white" | "black">(
+    "white"
+  );
 
   const currentMoveIndexRef = useRef(0);
   const fenRef = useRef<string>("");
@@ -217,7 +219,7 @@ export default function GameViewPage() {
 
   const handleRotateBoard = () => {
     setBoardOrientation((prev) => (prev === "white" ? "black" : "white"));
-  };  
+  };
 
   function parseEvaluation(message: string): {
     scoreType: "cp" | "mate";
@@ -501,6 +503,26 @@ export default function GameViewPage() {
     });
   };
 
+  const handleOnDrop = (sourceSquare: Square, targetSquare: Square) => {
+    if (!chessModule) return false;
+
+    const Chess = chessModule.Chess;
+    const chess = new Chess(fen);
+
+    const move = chess.move({
+      from: sourceSquare,
+      to: targetSquare,
+      promotion: "q",
+    });
+
+    if (move) {
+      setFen(chess.fen()); 
+      return true;
+    }
+
+    return false;
+  };
+
   // Handle PGN download
   const handleDownloadPgn = () => {
     if (!game || processedMoves.length === 0) return;
@@ -742,7 +764,8 @@ export default function GameViewPage() {
                     customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
                     customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
                     customArrows={bestArrow ? [bestArrow] : []}
-                    arePiecesDraggable={false}
+                    arePiecesDraggable={true}
+                    onPieceDrop={handleOnDrop}
                   />
                 </div>
 

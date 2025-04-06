@@ -4,7 +4,13 @@ import React, { useCallback, useMemo } from "react";
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Flag, RotateCcw } from "lucide-react";
+import {
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  RotateCcw,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import {
@@ -23,6 +29,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { gameplayService } from "@/services/gameplay-service";
 import GameStatus from "@/components/game/game-status";
 import { useIsMobile } from "@/hooks/use-mobile";
+import Link from "next/link";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -82,7 +89,11 @@ export default function PlayPage() {
   const [lastMoveFrom, setLastMoveFrom] = useState<string | null>(null);
   const [lastMoveTo, setLastMoveTo] = useState<string | null>(null);
   const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
-  const promotionDataRef = useRef<{ from: string; to: string; piece: string } | null>(null);
+  const promotionDataRef = useRef<{
+    from: string;
+    to: string;
+    piece: string;
+  } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   //Data
@@ -107,7 +118,6 @@ export default function PlayPage() {
       setInCheckSquare(null);
     }
   }
-  
 
   useEffect(() => {
     if (user) {
@@ -153,7 +163,7 @@ export default function PlayPage() {
       },
       onReconnected: () => {
         setGameStarted(true);
-        addSystemMessage("You reconnected to the game.")
+        addSystemMessage("You reconnected to the game.");
       },
       onMoveMade: (data) => {
         if (!gameStarted) setGameStarted(true);
@@ -162,17 +172,17 @@ export default function PlayPage() {
         setWhiteTime(data.white_time);
         setBlackTime(data.black_time);
         setIsWhiteTurn(data.turn === "white");
-        
+
         if (gameObjRef.current) {
           gameObjRef.current.load(data.fen);
           checkIfInCheck(gameObjRef.current);
         } else if (chessModule) {
-          console.warn("Reloaded chess module")
+          console.warn("Reloaded chess module");
           const Chess = chessModule.Chess;
           gameObjRef.current = new Chess(data.fen);
           checkIfInCheck(gameObjRef.current);
         }
-        
+
         const from = data.uci?.substring(0, 2);
         const to = data.uci?.substring(2, 4);
         setLastMoveFrom(from);
@@ -347,7 +357,7 @@ export default function PlayPage() {
 
   function handleSquareClick(square: string) {
     const game = gameObjRef.current;
-    if (!game || gameStatus !== "active") return;;
+    if (!game || gameStatus !== "active") return;
 
     const playerColor = currentPlayerColor === "white" ? "w" : "b";
     const pieceAtSquare = game.get(square);
@@ -382,22 +392,21 @@ export default function PlayPage() {
       const isPromotion =
         selectedPiece[1] === "P" &&
         ((currentPlayerColor === "white" && square[1] === "8") ||
-         (currentPlayerColor === "black" && square[1] === "1"));
-    
+          (currentPlayerColor === "black" && square[1] === "1"));
+
       if (isPromotion) {
         promotionDataRef.current = {
           from: selectedSquare,
           to: square,
           piece: selectedPiece,
         };
-        console.log("OPEN PROMOTION!")
+        console.log("OPEN PROMOTION!");
         setIsPromotionDialogOpen(true);
         return;
       }
-    
+
       handleMove(selectedSquare, square, selectedPiece);
     }
-    
   }
 
   function safeMove(
@@ -427,7 +436,9 @@ export default function PlayPage() {
   ): boolean {
     const game = gameObjRef.current;
     if (!game || !chessModule || !isOpponentReady || !game) {
-      console.error("Chess module, game object not loaded, or opponent not ready");
+      console.error(
+        "Chess module, game object not loaded, or opponent not ready"
+      );
       return false;
     }
 
@@ -443,13 +454,13 @@ export default function PlayPage() {
     try {
       const promotionChar = piece[1].toLowerCase();
       const move = safeMove(game, sourceSquare, targetSquare, promotionChar);
-      
+
       if (!move) {
         debugger;
         console.log("No move: ", move);
         return false;
       }
-      
+
       setFen(game.fen());
 
       const uci = `${sourceSquare}${targetSquare}${move.promotion || ""}`;
@@ -626,12 +637,12 @@ export default function PlayPage() {
       }),
       ...(lastMoveFrom && {
         [lastMoveFrom]: {
-          backgroundColor:  "rgba(144, 238, 144, 0.25)",
+          backgroundColor: "rgba(144, 238, 144, 0.25)",
         },
       }),
       ...(lastMoveTo && {
         [lastMoveTo]: {
-          backgroundColor:  "rgba(144, 238, 144, 0.25)",
+          backgroundColor: "rgba(144, 238, 144, 0.25)",
         },
       }),
     };
@@ -904,9 +915,9 @@ export default function PlayPage() {
                     const refTo = promotionDataRef.current.to;
                     promotionDataRef.current = null;
                     setIsPromotionDialogOpen(false);
-                    return handleMove(refFrom, refTo, piece??"");
-                  } 
-                  
+                    return handleMove(refFrom, refTo, piece ?? "");
+                  }
+
                   if (!piece || !from || !to) return false;
                   handleMove(from, to, piece);
                   return true;
@@ -1038,26 +1049,39 @@ export default function PlayPage() {
             </div>
 
             <div className="flex justify-center gap-3">
-              <Button
-                className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-red-600/80 hover:to-red-700/80 text-white"
-                size="sm"
-                onClick={openResignConfirmation}
-                disabled={gameStatus !== "active" || !isOpponentReady}
-                variant="outline"
-              >
-                <Flag className="h-3 w-3 mr-1" />
-                <span className="text-xs">Resign</span>
-              </Button>
-              <Button
-                className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-indigo-600/80 hover:to-purple-700/80 text-white"
-                size="sm"
-                onClick={openDrawConfirmation}
-                disabled={gameStatus !== "active" || !isOpponentReady}
-                variant="outline"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                <span className="text-xs">Draw</span>
-              </Button>
+              {gameStatus === "active" && (
+                <>
+                  <Button
+                    className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-red-600/80 hover:to-red-700/80 text-white"
+                    size="sm"
+                    onClick={openResignConfirmation}
+                    disabled={gameStatus !== "active" || !isOpponentReady}
+                    variant="outline"
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    <span className="text-xs">Resign</span>
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-indigo-600/80 hover:to-purple-700/80 text-white"
+                    size="sm"
+                    onClick={openDrawConfirmation}
+                    disabled={gameStatus !== "active" || !isOpponentReady}
+                    variant="outline"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    <span className="text-xs">Draw</span>
+                  </Button>
+                </>
+              )}
+              {gameStatus !== "active" && (
+                <Link
+                  href={`/game/${gameId}`}
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-indigo-600/80 hover:to-purple-700/80 text-white h-8 px-3"
+                >
+                  <Activity className="h-3 w-3 mr-1" />
+                  <span className="text-xs">Analyze</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
