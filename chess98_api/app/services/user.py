@@ -25,7 +25,10 @@ async def get_top_users_by_rating(db: AsyncSession) -> Dict[str, List[dict]]:
             select(User)
             .join(Profile)
             .options(joinedload(User.profile))
-            .where(User.status == "active")
+            .where(
+                User.status == "active",
+                Profile.total_games > 0
+            )
             .order_by(desc(func.cast(Profile.ratings.op('->>')(control), Integer)))
             .limit(5)
         )
