@@ -828,29 +828,43 @@ export default function PlayPage() {
           </div>
         </div>
 
+        {/* Botones moviles de resign y draw */}
         {isMobile && (
           <>
             <div className="flex justify-center gap-3">
-              <Button
-                className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-red-600/80 hover:to-red-700/80 text-white"
-                size="sm"
-                onClick={openResignConfirmation}
-                disabled={gameStatus !== "active" || !isOpponentReady}
-                variant="outline"
-              >
-                <Flag className="h-3 w-3 mr-1" />
-                <span className="text-xs">Resign</span>
-              </Button>
-              <Button
-                className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-indigo-600/80 hover:to-purple-700/80 text-white"
-                size="sm"
-                onClick={openDrawConfirmation}
-                disabled={gameStatus !== "active" || !isOpponentReady}
-                variant="outline"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                <span className="text-xs">Draw</span>
-              </Button>
+              {gameStatus === "active" && (
+                <>
+                  <Button
+                    className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-red-600/80 hover:to-red-700/80 text-white"
+                    size="sm"
+                    onClick={openResignConfirmation}
+                    disabled={gameStatus !== "active" || !isOpponentReady}
+                    variant="outline"
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    <span className="text-xs">Resign</span>
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-indigo-600/80 hover:to-purple-700/80 text-white"
+                    size="sm"
+                    onClick={openDrawConfirmation}
+                    disabled={gameStatus !== "active" || !isOpponentReady}
+                    variant="outline"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    <span className="text-xs">Draw</span>
+                  </Button>
+                </>
+              )}
+              {gameStatus !== "active" && (
+                <Link
+                  href={`/game/${gameId}`}
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700 hover:from-indigo-600/80 hover:to-purple-700/80 text-white h-8 px-3"
+                >
+                  <Activity className="h-3 w-3 mr-1" />
+                  <span className="text-xs">Analyze</span>
+                </Link>
+              )}
             </div>
             <div className="flex flex-col items-center">
               {renderClock({

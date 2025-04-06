@@ -1,46 +1,74 @@
 export type StockfishCallback = (message: string) => void;
-
 export class StockfishService {
   private worker: Worker | null = null;
+  private fullWorker: Worker | null = null;
   private onMessageCallback: StockfishCallback | null = null;
   private analyzing: boolean = false;
   private scriptPath: string;
+  private isMobile: boolean;
+  private onEngineSwitch?: () => void;
+  private lastAnalyzedFen: string | null = null;
+  private lastAnalyzedDepth: number | null = null;
 
-  constructor(scriptPath?: string) {
-    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    this.scriptPath = scriptPath || (isMobile
-      ? "/stockfish-17-lite.js"
-      : "/stockfish-17.js");
+  constructor() {
+    this.isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    this.scriptPath = "/stockfish-17-lite.js";
+    this.initWorker();
   }
 
-  /**
-   * Inicializa el worker si aún no existe.
-   */
   private initWorker() {
     if (!this.worker) {
       this.worker = new Worker(this.scriptPath);
-
       this.worker.onmessage = (e: MessageEvent) => {
         if (this.onMessageCallback) {
           this.onMessageCallback(e.data);
         }
       };
-
       this.postMessage("uci");
       this.postMessage("ucinewgame");
     }
   }
 
-  /**
-   * Espera hasta que el motor esté listo (`readyok`).
-   */
+  private upgradeToFullVersion() {
+    if (!this.fullWorker) return;
+
+    this.worker?.terminate();
+    this.worker = this.fullWorker;
+    this.fullWorker = null;
+
+    this.scriptPath = "/stockfish-17.js";
+
+    this.worker.onmessage = (e: MessageEvent) => {
+      if (this.onMessageCallback) {
+        this.onMessageCallback(e.data);
+      }
+    };
+
+    if (this.onEngineSwitch) {
+      this.onEngineSwitch();
+    }
+
+    if (this.analyzing && this.lastAnalyzedFen) {
+      this.postMessage("uci");
+      this.postMessage("ucinewgame");
+      this.postMessage(`position fen ${this.lastAnalyzedFen}`);
+      this.postMessage(`go depth ${this.lastAnalyzedDepth ?? 30}`);
+    }
+  }
+
+  public setOnEngineSwitch(callback: () => void) {
+    this.onEngineSwitch = callback;
+  }
+
+  public setOnMessageCallback(callback: StockfishCallback) {
+    this.onMessageCallback = callback;
+  }
+
   public waitUntilReady(): Promise<void> {
     return new Promise((resolve) => {
       const handler = (e: MessageEvent) => {
         if (e.data === "readyok") {
-          if (this.worker) {
-            this.worker.removeEventListener("message", handler);
-          }
+          this.worker?.removeEventListener("message", handler);
           resolve();
         }
       };
@@ -54,35 +82,35 @@ export class StockfishService {
     });
   }
 
-  /**
-   * Establece el callback para recibir respuestas del motor.
-   */
-  public setOnMessageCallback(callback: StockfishCallback) {
-    this.onMessageCallback = callback;
-  }
-
-  /**
-   * Envía un comando UCI al motor.
-   */
   private postMessage(command: string) {
-    if (this.worker) {
-      this.worker.postMessage(command);
-    }
+    this.worker?.postMessage(command);
   }
 
-  /**
-   * Inicia análisis para una posición dada.
-   */
+  private initFullWorkerIfNeeded() {
+    if (this.fullWorker || this.isMobile) return;
+
+    this.fullWorker = new Worker("/stockfish-17.js");
+    this.fullWorker.onmessage = (e: MessageEvent) => {
+      if (e.data === "uciok" || e.data === "readyok") {
+        this.upgradeToFullVersion();
+      }
+    };
+
+    this.fullWorker.postMessage("uci");
+    this.fullWorker.postMessage("isready");
+  }
+
   public startAnalysis(fen: string, depth: number = 20) {
     this.initWorker();
+    this.initFullWorkerIfNeeded();
+
     this.postMessage(`position fen ${fen}`);
     this.postMessage(`go depth ${depth}`);
     this.analyzing = true;
+    this.lastAnalyzedFen = fen;
+    this.lastAnalyzedDepth = depth;
   }
 
-  /**
-   * Reinicia análisis después de detener y esperar readiness.
-   */
   public async restartAnalysis(fen: string, depth: number = 20) {
     if (!this.worker) return;
 
@@ -93,9 +121,6 @@ export class StockfishService {
     this.analyzing = true;
   }
 
-  /**
-   * Detiene análisis actual si está en curso.
-   */
   public stopAnalysis() {
     if (this.worker && this.analyzing) {
       this.postMessage("stop");
@@ -103,9 +128,6 @@ export class StockfishService {
     }
   }
 
-  /**
-   * Alterna entre analizar y detener.
-   */
   public toggleAnalysis(fen: string) {
     if (this.analyzing) {
       this.stopAnalysis();
@@ -114,20 +136,14 @@ export class StockfishService {
     }
   }
 
-  /**
-   * Termina completamente el worker.
-   */
   public terminate() {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-      this.analyzing = false;
-    }
+    this.worker?.terminate();
+    this.worker = null;
+    this.fullWorker?.terminate();
+    this.fullWorker = null;
+    this.analyzing = false;
   }
 
-  /**
-   * Devuelve el nombre del script cargado (para mostrar en UI).
-   */
   public getScriptPath(): string {
     return this.scriptPath;
   }

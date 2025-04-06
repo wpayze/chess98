@@ -66,7 +66,7 @@ export default function GameViewPage() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [fen, setFen] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1000); // ms between moves
+  const [playbackSpeed, setPlaybackSpeed] = useState(200); // ms between moves
   const [playbackInterval, setPlaybackInterval] =
     useState<NodeJS.Timeout | null>(null);
   const [boardHeight, setBoardHeight] = useState(0);
@@ -90,8 +90,8 @@ export default function GameViewPage() {
   const currentMoveIndexRef = useRef(0);
   const fenRef = useRef<string>("");
 
-  const chosenDepth = 25;
   const isMobile = useIsMobile();
+  const chosenDepth = isMobile ? 25 : 30;
 
   useEffect(() => {
     currentMoveIndexRef.current = currentMoveIndex;
@@ -123,6 +123,10 @@ export default function GameViewPage() {
     const sfService = new StockfishService();
     setEngineName(sfService.getScriptPath());
     setEngineLoading(true);
+
+    sfService.setOnEngineSwitch(() => {
+      setEngineName(sfService.getScriptPath());
+    });
 
     sfService.setOnMessageCallback((message) => {
       if (message.includes("uciok")) {
@@ -516,7 +520,7 @@ export default function GameViewPage() {
     });
 
     if (move) {
-      setFen(chess.fen()); 
+      setFen(chess.fen());
       return true;
     }
 
@@ -641,6 +645,55 @@ export default function GameViewPage() {
     return "text-slate-200";
   };
 
+  const PlayerHeader = ({ color }: { color: "white" | "black" }) => {
+    const isWhite = color === "white";
+    const player = isWhite ? game.white_player : game.black_player;
+    const rating = isWhite ? game.white_rating : game.black_rating;
+    const ratingChange = isWhite
+      ? game.white_rating_change
+      : game.black_rating_change;
+
+    return (
+      <div
+        className={`flex items-center justify-between ${
+          isWhite ? "mt-4" : "mb-2"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className={`rounded-full ${
+              isWhite
+                ? "w-3 h-3 bg-white"
+                : "w-2 h-2 bg-black border border-white/20"
+            }`}
+          ></div>
+          <div
+            className={`font-medium text-white ${!isWhite ? "text-sm" : ""}`}
+          >
+            {player.username}
+          </div>
+          <Badge
+            className={`bg-amber-500/10 border-amber-500/20 text-amber-400 ${
+              !isWhite ? "text-xs" : ""
+            }`}
+          >
+            {rating}
+          </Badge>
+          {ratingChange !== 0 && ratingChange !== null && (
+            <span
+              className={`${!isWhite ? "text-xs" : ""} ${
+                ratingChange > 0 ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {ratingChange > 0 ? "+" : ""}
+              {ratingChange}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const arrowButtonsSize = isMobile ? "h-10 w-10" : "h-8 w-8";
   const arrowIconsSize = isMobile ? "h-5 w-5" : "h-3 w-3";
 
@@ -724,30 +777,7 @@ export default function GameViewPage() {
           <div className="lg:col-span-8">
             <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50 h-full">
               <CardContent className="p-4 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-black border border-white/20"></div>
-                    <div className="font-medium text-white text-sm">
-                      {game.black_player.username}
-                    </div>
-                    <Badge className="bg-amber-500/10 border-amber-500/20 text-amber-400 text-xs">
-                      {game.black_rating}
-                    </Badge>
-                    {game.black_rating_change !== 0 &&
-                      game.black_rating_change !== null && (
-                        <span
-                          className={`text-xs ${
-                            game.black_rating_change > 0
-                              ? "text-green-400"
-                              : "text-red-400"
-                          }`}
-                        >
-                          {game.black_rating_change > 0 ? "+" : ""}
-                          {game.black_rating_change}
-                        </span>
-                      )}
-                  </div>
-                </div>
+                <PlayerHeader color={boardOrientation == "white" ? "black" : "white"} />
 
                 <div
                   ref={boardContainerRef}
@@ -769,30 +799,7 @@ export default function GameViewPage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-white"></div>
-                    <div className="font-medium text-white">
-                      {game.white_player.username}
-                    </div>
-                    <Badge className="bg-amber-500/10 border-amber-500/20 text-amber-400">
-                      {game.white_rating}
-                    </Badge>
-                    {game.white_rating_change !== 0 &&
-                      game.white_rating_change !== null && (
-                        <span
-                          className={
-                            game.white_rating_change > 0
-                              ? "text-green-400"
-                              : "text-red-400"
-                          }
-                        >
-                          {game.white_rating_change > 0 ? "+" : ""}
-                          {game.white_rating_change}
-                        </span>
-                      )}
-                  </div>
-                </div>
+                <PlayerHeader color={boardOrientation == "white" ? "white" : "black"} />
 
                 <div className="flex items-center justify-center gap-2 mt-4">
                   <Button

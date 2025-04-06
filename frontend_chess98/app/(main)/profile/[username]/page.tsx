@@ -503,9 +503,13 @@ export default function ProfilePage() {
                               <span className="text-slate-400">
                                 {formatDate(game.date)}
                               </span>
-                              <span className="text-slate-500">•</span>
+                              {/* <span className="text-slate-500">•</span>
                               <span className="text-slate-400">
                                 {game.moves} moves
+                              </span> */}
+                              <span className="text-slate-500">•</span>
+                              <span className="text-slate-400">
+                                {game.time_control}
                               </span>
                               <span className="text-slate-500">•</span>
                               <span
