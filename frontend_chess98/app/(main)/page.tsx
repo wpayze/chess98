@@ -1,5 +1,6 @@
 "use server";
 
+import RecentGames from "@/components/recent-games";
 import TimeControls from "@/components/time-controls-matchmaking";
 import TopPlayersRanking from "@/components/top-players-ranking";
 
@@ -15,7 +16,11 @@ export default async function Home() {
         </p>
 
         <TimeControls />
-        <TopPlayersRanking />
+
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <TopPlayersRanking />
+          <RecentGames />
+        </div>
       </div>
 
       <div className="mt-auto pt-8 pb-4 text-center">

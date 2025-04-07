@@ -66,7 +66,7 @@ export default function GameViewPage() {
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [fen, setFen] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(200); // ms between moves
+  const [playbackSpeed, setPlaybackSpeed] = useState(1000); // ms between moves
   const [playbackInterval, setPlaybackInterval] =
     useState<NodeJS.Timeout | null>(null);
   const [boardHeight, setBoardHeight] = useState(0);
@@ -448,6 +448,21 @@ export default function GameViewPage() {
     goToMove(0);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        goToPrevious()
+      } else if (e.key === "ArrowRight") {
+        goToNext()
+      }
+    }
+  
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [goToPrevious, goToNext])
+
   const goToEnd = () => {
     if (!game || processedMoves.length === 0) return;
     const moveCount =
@@ -655,33 +670,29 @@ export default function GameViewPage() {
 
     return (
       <div
-        className={`flex items-center justify-between ${
-          isWhite ? "mt-4" : "mb-2"
-        }`}
+        className={`flex items-center justify-between mt-4`}
       >
         <div className="flex items-center gap-2">
           <div
             className={`rounded-full ${
               isWhite
                 ? "w-3 h-3 bg-white"
-                : "w-2 h-2 bg-black border border-white/20"
+                : "w-3 h-3 bg-black"
             }`}
           ></div>
           <div
-            className={`font-medium text-white ${!isWhite ? "text-sm" : ""}`}
+            className={`font-medium text-white`}
           >
             {player.username}
           </div>
           <Badge
-            className={`bg-amber-500/10 border-amber-500/20 text-amber-400 ${
-              !isWhite ? "text-xs" : ""
-            }`}
+            className={`bg-amber-500/10 border-amber-500/20 text-amber-400`}
           >
             {rating}
           </Badge>
           {ratingChange !== 0 && ratingChange !== null && (
             <span
-              className={`${!isWhite ? "text-xs" : ""} ${
+              className={`${
                 ratingChange > 0 ? "text-green-400" : "text-red-400"
               }`}
             >

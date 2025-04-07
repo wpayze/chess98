@@ -20,7 +20,7 @@ from app.schemas.active_game import ActiveGame, PlayerColor
 import logging
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from app.schemas.game import GameOut, GameSummary, OpponentSummary, PaginatedGames
+from app.schemas.game import GameOut, GameSummary, OpponentSummary, PaginatedGames, RecentGame, PlayerSummary, PaginatedRecentGames
 from app.models.game import GameResult, GameTermination
 from app.utils.elo import update_ratings
 
@@ -121,6 +121,63 @@ async def get_games_by_user(user_id: UUID, page: int, page_size: int, db: AsyncS
     total_pages = (total_games + page_size - 1) // page_size
 
     return PaginatedGames(
+        games=summaries,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        total_games=total_games
+    )
+
+async def get_recent_games(page: int, page_size: int, db: AsyncSession) -> PaginatedRecentGames:
+    offset = (page - 1) * page_size
+
+    # Contar todos los juegos no activos (terminados)
+    total_result = await db.execute(
+        select(func.count())
+        .select_from(Game)
+        .where(Game.status != GameStatus.active)
+    )
+    total_games = total_result.scalar_one()
+
+    # Obtener juegos más recientes
+    result = await db.execute(
+        select(Game)
+        .where(Game.status != GameStatus.active)
+        .options(
+            selectinload(Game.white_player).selectinload(User.profile),
+            selectinload(Game.black_player).selectinload(User.profile)
+            # selectinload(Game.moves)
+        )
+        .order_by(Game.start_time.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    games = result.scalars().all()
+    summaries = []
+
+    for game in games:
+        summaries.append(RecentGame(
+            game_id=game.id,
+            time_control=game.time_control,
+            time_control_str=game.time_control_str,
+            result=game.result,
+            date=game.end_time or game.start_time,
+            white_player=PlayerSummary(
+                username=game.white_player.username,
+                rating=game.white_rating,
+                title=game.white_player.profile.title
+            ),
+            black_player=PlayerSummary(
+                username=game.black_player.username,
+                rating=game.black_rating,
+                title=game.black_player.profile.title
+            )
+        ))
+
+    total_pages = (total_games + page_size - 1) // page_size
+
+    return PaginatedRecentGames(
         games=summaries,
         page=page,
         page_size=page_size,

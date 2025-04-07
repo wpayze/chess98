@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ import { gameplayService } from "@/services/gameplay-service";
 import GameStatus from "@/components/game/game-status";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
+import { playSound } from "@/services/sounds-service";
+import { SOUNDS } from "@/constants/sounds";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -114,8 +116,24 @@ export default function PlayPage() {
       const turnColor = game.turn();
       const kingSquare = findKingSquare(game, turnColor);
       setInCheckSquare(kingSquare);
+      return true;
     } else {
       setInCheckSquare(null);
+      return false;
+    }
+  }
+
+  function handleMoveSound(game: any, move: any) {
+    if (!move) return;
+
+    if (move.flags.includes("c")) {
+      playSound(SOUNDS.CAPTURE);
+    } else if (move.flags.includes("k") || move.flags.includes("q")) {
+      playSound(SOUNDS.CASTLE);
+    } else if (game.inCheck()) {
+      playSound(SOUNDS.CHECK);
+    } else {
+      playSound(SOUNDS.MOVE);
     }
   }
 
@@ -148,6 +166,7 @@ export default function PlayPage() {
         addSystemMessage("Waiting for opponent to join...");
       },
       onGameReady: (data) => {
+        playSound(SOUNDS.GAME_START);
         setIsOpponentReady(true);
         setFen(data.initial_fen);
         setWhiteTime(data.your_time);
@@ -172,8 +191,27 @@ export default function PlayPage() {
         setWhiteTime(data.white_time);
         setBlackTime(data.black_time);
         setIsWhiteTurn(data.turn === "white");
+        const from = data.uci?.substring(0, 2);
+        const to = data.uci?.substring(2, 4);
+        setLastMoveFrom(from);
+        setLastMoveTo(to);
 
+        const isOpponentMove = data.turn === currentPlayerColor
+        console.log({isOpponentMove})
         if (gameObjRef.current) {
+          if (isOpponentMove) {
+            const tempMove = gameObjRef.current.move({
+              from,
+              to,
+              promotion: "q",
+            })
+        
+            if (tempMove) {
+              handleMoveSound(gameObjRef.current, tempMove)
+              gameObjRef.current.undo()
+            }
+          }
+        
           gameObjRef.current.load(data.fen);
           checkIfInCheck(gameObjRef.current);
         } else if (chessModule) {
@@ -182,11 +220,6 @@ export default function PlayPage() {
           gameObjRef.current = new Chess(data.fen);
           checkIfInCheck(gameObjRef.current);
         }
-
-        const from = data.uci?.substring(0, 2);
-        const to = data.uci?.substring(2, 4);
-        setLastMoveFrom(from);
-        setLastMoveTo(to);
 
         // Update moves
         setMoves((prev) => {
@@ -461,6 +494,7 @@ export default function PlayPage() {
         return false;
       }
 
+      handleMoveSound(gameObjRef.current, move)
       setFen(game.fen());
 
       const uci = `${sourceSquare}${targetSquare}${move.promotion || ""}`;

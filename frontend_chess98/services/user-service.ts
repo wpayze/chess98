@@ -1,6 +1,7 @@
 import { ApiService } from "./api-service"
 import type { TopPlayersResponse, User } from "@/models/user"
 import { ENDPOINTS, replacePathParams } from "@/constants/endpoints"
+import { PaginatedRecentGames } from "@/models/dto/recent-games-dto"
 
 class UserService extends ApiService {
   /**
@@ -16,6 +17,11 @@ class UserService extends ApiService {
    */
    async getTopPlayers(): Promise<TopPlayersResponse> {
     return this.fetchPublic<TopPlayersResponse>(ENDPOINTS.TOP_PLAYERS);
+  }
+  
+  async getRecentGames(page = 1, pageSize = 10): Promise<PaginatedRecentGames> {
+    const url = `${ENDPOINTS.RECENT_GAMES}?page=${page}&page_size=${pageSize}`
+    return this.fetchPublic<PaginatedRecentGames>(url)
   }
 }
 

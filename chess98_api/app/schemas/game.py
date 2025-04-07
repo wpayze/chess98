@@ -99,3 +99,31 @@ class PaginatedGames(BaseModel):
     page_size: int
     total_pages: int
     total_games: int
+
+class PlayerSummary(BaseModel):
+    username: str
+    rating: int
+    title: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class RecentGame(BaseModel):
+    game_id: UUID
+    time_control: str
+    time_control_str: str
+    result: Optional[str]
+    date: datetime
+
+    white_player: PlayerSummary
+    black_player: PlayerSummary
+
+    class Config:
+        from_attributes = True
+
+class PaginatedRecentGames(BaseModel):
+    games: List[RecentGame]
+    page: int
+    page_size: int
+    total_pages: int
+    total_games: int
