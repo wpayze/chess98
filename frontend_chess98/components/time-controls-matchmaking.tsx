@@ -16,7 +16,7 @@ export default function TimeControls() {
     { name: "Bullet", icon: Zap, options: ["1+0", "1+1", "2+1"] },
     { name: "Blitz", icon: Clock, options: ["3+0", "3+2", "5+0"] },
     { name: "Rapid", icon: Hourglass, options: ["10+0", "10+5", "15+10"] },
-    { name: "Classical", icon: Trophy, options: ["30+0", "30+20"] },
+    { name: "Classical", icon: Trophy, options: ["30+0", "30+15", "30+30"] },
   ]
 
   const [isSearching, setIsSearching] = useState(false)

@@ -12,3 +12,4 @@ class TimeControl(str, Enum):
     rapid_15_10 = "15+10"
     classical_30_0 = "30+0"
     classical_30_20 = "30+20"
+    classical_30_30 = "30+30"

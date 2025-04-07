@@ -197,7 +197,7 @@ export default function PlayPage() {
         setLastMoveTo(to);
 
         const isOpponentMove = data.turn === currentPlayerColor
-        console.log({isOpponentMove})
+
         if (gameObjRef.current) {
           if (isOpponentMove) {
             const tempMove = gameObjRef.current.move({
@@ -239,6 +239,7 @@ export default function PlayPage() {
       },
       onGameOver: (data) => {
         setGameStatus("finished");
+        playSound(SOUNDS.GAME_END);
 
         let resultText = "";
         let customMessage = "";
