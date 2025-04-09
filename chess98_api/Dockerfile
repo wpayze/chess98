@@ -1,8 +1,5 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y build-essential
-RUN pip install --upgrade pip wheel
-
 WORKDIR /app
 
 COPY requirements.txt .
