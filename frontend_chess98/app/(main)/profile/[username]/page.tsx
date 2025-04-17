@@ -45,7 +45,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { MiniChessboard } from "@/components/mini-chessboard";
 import { GameSummary } from "@/models/game";
 import { gameService } from "@/services/game-service";
-import { formatDate } from "@/utils/formatDate";
+import { formatDate } from "@/utils/timeFormats";
 import { profileService } from "@/services/profile-service";
 import { Profile } from "@/models/profile";
 
