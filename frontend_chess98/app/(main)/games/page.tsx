@@ -63,14 +63,17 @@ export default function GamesPage() {
     // Change page
     const goToPage = (pageNumber: number) => {
         if (pageNumber >= 1 && pageNumber <= totalPages) {
-          setApiPage(pageNumber)
+            setApiPage(pageNumber)
         }
-      }
+    }
 
     if (loading && games.length === 0) {
         return (
             <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/90 flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="mt-4 text-lg text-slate-300">Loading games...</p>
+                </div>
             </div>
         )
     }
