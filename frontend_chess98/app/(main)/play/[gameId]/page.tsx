@@ -178,6 +178,8 @@ export default function PlayPage() {
         if (chessModule) {
           const Chess = chessModule.Chess;
           gameObjRef.current = new Chess(data.initial_fen);
+        } else {
+          console.error("Chess module not loaded yet.");
         }
       },
       onReconnected: () => {

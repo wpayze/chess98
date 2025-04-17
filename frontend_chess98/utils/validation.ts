@@ -22,9 +22,9 @@ export const validatePassword = (password: string): string | null => {
   const hasLowercase = /[a-z]/.test(password)
   const hasNumber = /[0-9]/.test(password)
 
-  if (!hasUppercase || !hasLowercase || !hasNumber) {
-    return "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-  }
+  // if (!hasUppercase || !hasLowercase || !hasNumber) {
+  //   return "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+  // }
 
   return null
 }

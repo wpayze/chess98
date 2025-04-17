@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, User, Globe, ArrowRight, ChevronLeft, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, User, ArrowRight, ChevronLeft, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -31,7 +31,6 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [country, setCountry] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
   // Validation states
@@ -208,6 +207,7 @@ export default function RegisterPage() {
                   <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="username"
+                    name="username"
                     type="text"
                     placeholder="Choose a username"
                     className={`pl-10 bg-slate-800/50 border-slate-700 h-10 ${usernameError ? "border-red-500" : ""}`}
@@ -229,7 +229,7 @@ export default function RegisterPage() {
                   <Input
                     id="display-name"
                     type="text"
-                    placeholder="Your display name"
+                    placeholder="Eg. John Doe"
                     className={`pl-10 bg-slate-800/50 border-slate-700 h-10 ${displayNameError ? "border-red-500" : ""}`}
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
@@ -247,6 +247,7 @@ export default function RegisterPage() {
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="you@example.com"
                     className={`pl-10 bg-slate-800/50 border-slate-700 h-10 ${emailError ? "border-red-500" : ""}`}
@@ -308,26 +309,6 @@ export default function RegisterPage() {
                   {confirmPasswordError && <p className="text-xs text-red-500 mt-1">{confirmPasswordError}</p>}
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country" className="text-sm font-medium">
-                  Country (Optional)
-                </Label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="country"
-                    type="text"
-                    placeholder="Your country"
-                    className="pl-10 bg-slate-800/50 border-slate-700 h-10"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <Separator className="bg-slate-700/50 my-2" />
 
               <p className="text-xs text-slate-400">
                 By creating an account, you agree to our{" "}

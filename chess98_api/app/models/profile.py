@@ -36,7 +36,7 @@ class Profile(Base):
             "blitz": 1200,
             "rapid": 1200,
             "classical": 1200,
-            "puzzle": 1200,
+            "puzzle": 500,
         },
         nullable=False,
     )
