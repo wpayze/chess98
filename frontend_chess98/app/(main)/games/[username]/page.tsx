@@ -41,7 +41,7 @@ import {
 import { MiniChessboard } from "@/components/mini-chessboard";
 import type { GameSummary } from "@/models/game";
 import { gameService } from "@/services/game-service";
-import { formatDate } from "@/utils/formatDate";
+import { formatDate } from "@/utils/timeFormats";
 
 export default function UserGamesPage() {
   const params = useParams();

@@ -32,6 +32,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { playSound } from "@/services/sounds-service";
 import { SOUNDS } from "@/constants/sounds";
+import { Chess98Board, Chess98BoardHandle } from "@/components/game/chess98-board";
+import { formatTime, getMinutesAgo } from "@/utils/timeFormats";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -46,20 +48,17 @@ export default function PlayPage() {
 
   const { user } = useAuthStore();
 
-  const gameObjRef = useRef<any>(null);
+  const boardRef = useRef<Chess98BoardHandle>(null);
 
   // State for the game
   const [fen, setFen] = useState<string | null>(null);
-  const [chessModule, setChessModule] = useState<any>(null);
   const [gameStatus, setGameStatus] = useState("active"); // active, canceled, finished
   const [gameResult, setGameResult] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(true);
-  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState([
     { sender: "system", message: "Connecting to game server..." },
   ]);
   const [game, setGame] = useState<Game | null>(null);
-  const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
 
   // Opponent loading state
   const [isOpponentReady, setIsOpponentReady] = useState(false);
@@ -84,18 +83,9 @@ export default function PlayPage() {
   const [isWhiteTurn, setIsWhiteTurn] = useState(true);
   const [gameStarted, setGameStarted] = useState(false);
   const [drawOffered, setDrawOffered] = useState(false);
-  const [inCheckSquare, setInCheckSquare] = useState<string | null>(null);
 
   const [whiteRatingChange, setWhiteRatingChange] = useState(0);
   const [blackRatingChange, setBlackRatingChange] = useState(0);
-  const [lastMoveFrom, setLastMoveFrom] = useState<string | null>(null);
-  const [lastMoveTo, setLastMoveTo] = useState<string | null>(null);
-  const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
-  const promotionDataRef = useRef<{
-    from: string;
-    to: string;
-    piece: string;
-  } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   //Data
@@ -111,51 +101,11 @@ export default function PlayPage() {
 
   const [isUserReady, setIsUserReady] = useState(false);
 
-  function checkIfInCheck(game: any) {
-    if (game.inCheck()) {
-      const turnColor = game.turn();
-      const kingSquare = findKingSquare(game, turnColor);
-      setInCheckSquare(kingSquare);
-      return true;
-    } else {
-      setInCheckSquare(null);
-      return false;
-    }
-  }
-
-  function handleMoveSound(game: any, move: any) {
-    if (!move) return;
-
-    if (move.flags.includes("c")) {
-      playSound(SOUNDS.CAPTURE);
-    } else if (move.flags.includes("k") || move.flags.includes("q")) {
-      playSound(SOUNDS.CASTLE);
-    } else if (game.inCheck()) {
-      playSound(SOUNDS.CHECK);
-    } else {
-      playSound(SOUNDS.MOVE);
-    }
-  }
-
   useEffect(() => {
     if (user) {
       setIsUserReady(true);
     }
   }, [user]);
-
-  // Initialize chess.js on the client side only
-  useEffect(() => {
-    const loadChessJs = async () => {
-      try {
-        const chessModule = await import("chess.js");
-        setChessModule(chessModule);
-      } catch (error) {
-        console.error("Error loading chess.js:", error);
-      }
-    };
-
-    loadChessJs();
-  }, []);
 
   useEffect(() => {
     if (!game || !user) return;
@@ -167,6 +117,7 @@ export default function PlayPage() {
       },
       onGameReady: (data) => {
         playSound(SOUNDS.GAME_START);
+
         setIsOpponentReady(true);
         setFen(data.initial_fen);
         setWhiteTime(data.your_time);
@@ -174,54 +125,21 @@ export default function PlayPage() {
         setIsWhiteTurn(data.turn === "white");
         addSystemMessage("Opponent has joined the game.");
         addSystemMessage("Game started. Good luck!");
-
-        if (chessModule) {
-          const Chess = chessModule.Chess;
-          gameObjRef.current = new Chess(data.initial_fen);
-        } else {
-          console.error("Chess module not loaded yet.");
-        }
       },
       onReconnected: () => {
         setGameStarted(true);
         addSystemMessage("You reconnected to the game.");
       },
       onMoveMade: (data) => {
-        if (!gameStarted) setGameStarted(true);
+        if (!gameStarted || !data.fen) setGameStarted(true);
 
-        setFen(data.fen);
         setWhiteTime(data.white_time);
         setBlackTime(data.black_time);
         setIsWhiteTurn(data.turn === "white");
         const from = data.uci?.substring(0, 2);
         const to = data.uci?.substring(2, 4);
-        setLastMoveFrom(from);
-        setLastMoveTo(to);
 
-        const isOpponentMove = data.turn === currentPlayerColor
-
-        if (gameObjRef.current) {
-          if (isOpponentMove) {
-            const tempMove = gameObjRef.current.move({
-              from,
-              to,
-              promotion: "q",
-            })
-        
-            if (tempMove) {
-              handleMoveSound(gameObjRef.current, tempMove)
-              gameObjRef.current.undo()
-            }
-          }
-        
-          gameObjRef.current.load(data.fen);
-          checkIfInCheck(gameObjRef.current);
-        } else if (chessModule) {
-          console.warn("Reloaded chess module");
-          const Chess = chessModule.Chess;
-          gameObjRef.current = new Chess(data.fen);
-          checkIfInCheck(gameObjRef.current);
-        }
+        boardRef.current?.applyExternalMove({ from, to, fen: data.fen, turn: data.turn === "white" ? "w" : "b" });
 
         // Update moves
         setMoves((prev) => {
@@ -236,8 +154,6 @@ export default function PlayPage() {
           }
           return newMoves;
         });
-
-        console.log("Move made:", data.san, "UCI:", data.uci);
       },
       onGameOver: (data) => {
         setGameStatus("finished");
@@ -391,156 +307,12 @@ export default function PlayPage() {
     }
   }
 
-  function handleSquareClick(square: string) {
-    const game = gameObjRef.current;
-    if (!game || gameStatus !== "active") return;
-
-    const playerColor = currentPlayerColor === "white" ? "w" : "b";
-    const pieceAtSquare = game.get(square);
-
-    console.log({ pieceAtSquare });
-
-    if (selectedSquare === square) {
-      setSelectedSquare(null);
-      setSelectedPiece(null);
-      return;
-    }
-
-    if (!selectedSquare) {
-      if (pieceAtSquare?.color === playerColor) {
-        setSelectedSquare(square);
-        setSelectedPiece(
-          `${pieceAtSquare.color}${pieceAtSquare.type.toUpperCase()}`
-        );
-      }
-      return;
-    }
-
-    if (pieceAtSquare?.color === playerColor) {
-      setSelectedSquare(square);
-      setSelectedPiece(
-        `${pieceAtSquare.color}${pieceAtSquare.type.toUpperCase()}`
-      );
-      return;
-    }
-
-    if (selectedPiece) {
-      const isPromotion =
-        selectedPiece[1] === "P" &&
-        ((currentPlayerColor === "white" && square[1] === "8") ||
-          (currentPlayerColor === "black" && square[1] === "1"));
-
-      if (isPromotion) {
-        promotionDataRef.current = {
-          from: selectedSquare,
-          to: square,
-          piece: selectedPiece,
-        };
-        console.log("OPEN PROMOTION!");
-        setIsPromotionDialogOpen(true);
-        return;
-      }
-
-      handleMove(selectedSquare, square, selectedPiece);
-    }
-  }
-
-  function safeMove(
-    game: any,
-    from: string,
-    to: string,
-    promotion: string
-  ): any | null {
-    const legalMoves = game.moves({ square: from, verbose: true });
-    const found = legalMoves.find((m: any) => m.to === to);
-
-    if (!found) return null;
-
-    const move = game.move({
-      from,
-      to,
-      promotion,
-    });
-
-    return move ?? null;
-  }
-
-  function handleMove(
-    sourceSquare: string,
-    targetSquare: string,
-    piece: string
-  ): boolean {
-    const game = gameObjRef.current;
-    if (!game || !chessModule || !isOpponentReady || !game) {
-      console.error(
-        "Chess module, game object not loaded, or opponent not ready"
-      );
-      return false;
-    }
-
-    const pieceColor = piece[0]; // "w" or "b"
-    const isWhitePiece = pieceColor === "w";
-    const isPlayerWhite = currentPlayerColor === "white";
-
-    if ((isWhitePiece && !isPlayerWhite) || (!isWhitePiece && isPlayerWhite)) {
-      console.warn("Attempted to move opponent's piece");
-      return false;
-    }
-
-    try {
-      const promotionChar = piece[1].toLowerCase();
-      const move = safeMove(game, sourceSquare, targetSquare, promotionChar);
-
-      if (!move) {
-        debugger;
-        console.log("No move: ", move);
-        return false;
-      }
-
-      handleMoveSound(gameObjRef.current, move)
-      setFen(game.fen());
-
-      const uci = `${sourceSquare}${targetSquare}${move.promotion || ""}`;
-      gameplayService.sendMove(uci);
-
-      setSelectedSquare(null);
-      setSelectedPiece(null);
-
-      return true;
-    } catch (err) {
-      console.error("Move error:", err);
-      return false;
-    }
-  }
-
-  function onDrop(sourceSquare: string, targetSquare: string, piece: string) {
-    return handleMove(sourceSquare, targetSquare, piece);
-  }
-
-  function findKingSquare(game: any, color: "w" | "b"): string | null {
-    const board = game.board();
-
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const square = board[row][col];
-        if (square && square.type === "k" && square.color === color) {
-          const file = "abcdefgh"[col];
-          const rank = `${8 - row}`;
-          return `${file}${rank}`;
-        }
-      }
-    }
-
-    return null;
-  }
-
   const declineDraw = () => {
     setDrawOffered(false);
     addSystemMessage("Draw declined.");
     gameplayService.sendDrawDecline();
   };
 
-  // Replace the handleResign function with this:
   const openResignConfirmation = () => {
     if (gameStatus !== "active") return;
     setShowResignConfirmation(true);
@@ -581,11 +353,11 @@ export default function PlayPage() {
     const baseClasses = [
       "font-mono font-bold text-center mb-1 px-4 py-2 rounded-lg transition-all duration-300",
       isLowTime &&
-        "text-red-500 border border-red-500 shadow-md shadow-red-500/30",
+      "text-red-500 border border-red-500 shadow-md shadow-red-500/30",
       isCritical && "animate-pulse",
       isCurrentPlayerTurn &&
-        !isLowTime &&
-        "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent border border-indigo-500/40 shadow-md shadow-indigo-500/30",
+      !isLowTime &&
+      "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent border border-indigo-500/40 shadow-md shadow-indigo-500/30",
       !isCurrentPlayerTurn && !isLowTime && "text-white/80",
       isOpponent ? "text-4xl md:text-5xl" : "text-4xl md:text-5xl",
     ]
@@ -599,27 +371,9 @@ export default function PlayPage() {
     );
   }
 
-  // Format time as mm:ss
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
+  
 
-  const getMinutesAgo = (isoTime: string | undefined) => {
-    if (!isoTime) return "";
-
-    const start = new Date(isoTime);
-    const now = new Date();
-    const diffMs = now.getTime() - start.getTime();
-    const diffMin = Math.floor(diffMs / 60000);
-    return diffMin <= 0
-      ? "just now"
-      : `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
-  };
-
+  
   const sendMessage = (message: string) => {
     if (!currentPlayerData?.username) return;
     if (!message) return;
@@ -646,8 +400,8 @@ export default function PlayPage() {
     const className = isZero
       ? "text-slate-400"
       : isPositive
-      ? "text-green-400"
-      : "text-red-400";
+        ? "text-green-400"
+        : "text-red-400";
 
     const sign = isPositive ? "+" : "";
 
@@ -658,32 +412,6 @@ export default function PlayPage() {
       </span>
     );
   }
-
-  const boardStyles = useMemo(() => {
-    return {
-      ...(inCheckSquare && {
-        [inCheckSquare]: {
-          backgroundColor: "rgba(239, 68, 68, 0.6)",
-          boxShadow: "inset 0 0 0 3px rgba(220, 38, 38, 0.8)",
-        },
-      }),
-      ...(selectedSquare && {
-        [selectedSquare]: {
-          backgroundColor: "rgba(255, 215, 0, 0.4)",
-        },
-      }),
-      ...(lastMoveFrom && {
-        [lastMoveFrom]: {
-          backgroundColor: "rgba(144, 238, 144, 0.25)",
-        },
-      }),
-      ...(lastMoveTo && {
-        [lastMoveTo]: {
-          backgroundColor: "rgba(144, 238, 144, 0.25)",
-        },
-      }),
-    };
-  }, [inCheckSquare, selectedSquare, lastMoveFrom, lastMoveTo]);
 
   const isCurrentPlayerTurn =
     (currentPlayerColor === "white" && isWhiteTurn) ||
@@ -708,40 +436,34 @@ export default function PlayPage() {
       <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
         {/* Left sidebar - Chat */}
         <div
-          className={`${
-            showChat ? "h-64 md:h-auto md:w-64" : "h-0 md:w-0"
-          } bg-gradient-to-b from-slate-800/90 to-slate-900/90 text-white flex flex-col border-r border-slate-700 transition-all duration-300 ease-in-out overflow-hidden md:overflow-visible ${
-            showChat
+          className={`${showChat ? "h-64 md:h-auto md:w-64" : "h-0 md:w-0"
+            } bg-gradient-to-b from-slate-800/90 to-slate-900/90 text-white flex flex-col border-r border-slate-700 transition-all duration-300 ease-in-out overflow-hidden md:overflow-visible ${showChat
               ? "opacity-100 translate-y-0 md:translate-x-0"
               : "opacity-0 -translate-y-full md:-translate-x-full"
-          }`}
+            }`}
         >
           {" "}
           <div className="p-3 border-b border-slate-700">
-            <div className="text-sm text-indigo-300 mb-1">{`${
-              game?.time_control
-            } • Rated • ${
-              game?.time_control_str
+            <div className="text-sm text-indigo-300 mb-1">{`${game?.time_control
+              } • Rated • ${game?.time_control_str
                 ? game?.time_control_str.charAt(0).toUpperCase() +
-                  game.time_control_str.slice(1)
+                game.time_control_str.slice(1)
                 : ""
-            }`}</div>
+              }`}</div>
             <div className="text-xs text-indigo-400">{`Started ${getMinutesAgo(
               game?.start_time
             )}`}</div>
 
             <div className="mt-3 flex items-center gap-2">
               <div
-                className={`w-3 h-3 rounded-full bg-${
-                  currentPlayerColor == "white" ? "white" : "black"
-                }`}
+                className={`w-3 h-3 rounded-full bg-${currentPlayerColor == "white" ? "white" : "black"
+                  }`}
               ></div>
               <div className="text-sm">
-                {`${currentPlayerData?.username} (${
-                  currentPlayerData?.profile?.ratings[
-                    game?.time_control_str ?? "blitz"
-                  ]
-                })`}{" "}
+                {`${currentPlayerData?.username} (${currentPlayerData?.profile?.ratings[
+                  game?.time_control_str ?? "blitz"
+                ]
+                  })`}{" "}
                 {gameStatus !== "active" &&
                   renderRatingChangeByColor(
                     currentPlayerColor === "white",
@@ -752,16 +474,14 @@ export default function PlayPage() {
             </div>
             <div className="flex items-center gap-2">
               <div
-                className={`w-3 h-3 rounded-full bg-${
-                  currentPlayerColor == "white" ? "black" : "white"
-                }`}
+                className={`w-3 h-3 rounded-full bg-${currentPlayerColor == "white" ? "black" : "white"
+                  }`}
               ></div>
               <div className="text-sm">
-                {`${opponentPlayerData?.username} (${
-                  opponentPlayerData?.profile?.ratings[
-                    game?.time_control_str ?? "blitz"
-                  ]
-                })`}
+                {`${opponentPlayerData?.username} (${opponentPlayerData?.profile?.ratings[
+                  game?.time_control_str ?? "blitz"
+                ]
+                  })`}
                 {gameStatus !== "active" &&
                   renderRatingChangeByColor(
                     currentPlayerColor !== "white",
@@ -775,8 +495,8 @@ export default function PlayPage() {
               {gameStatus === "canceled"
                 ? "Game canceled"
                 : gameStatus === "finished"
-                ? "Game finished"
-                : "Game in progress"}
+                  ? "Game finished"
+                  : "Game in progress"}
             </div>
           </div>
           <div className="flex border-b border-slate-700">
@@ -923,9 +643,8 @@ export default function PlayPage() {
           {/* Toggle chat button */}
           <button
             onClick={() => setShowChat(!showChat)}
-            className={`fixed md:top-1/2 bottom-4 md:bottom-auto md:transform md:-translate-y-1/2 transition-all duration-300 z-10 p-1 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-md md:rounded-r-md shadow-md ${
-              showChat ? "left-4 md:left-[256px]" : "left-4 md:left-0"
-            }`}
+            className={`fixed md:top-1/2 bottom-4 md:bottom-auto md:transform md:-translate-y-1/2 transition-all duration-300 z-10 p-1 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-md md:rounded-r-md shadow-md ${showChat ? "left-4 md:left-[256px]" : "left-4 md:left-0"
+              }`}
           >
             {showChat ? (
               <ChevronLeft className="h-4 w-4 text-white hidden md:block" />
@@ -936,42 +655,15 @@ export default function PlayPage() {
 
           {/* Chess board */}
           <div className="w-full max-w-[min(95vw,600px)] h-[min(95vw,600px)] md:w-[min(80vh,600px)] md:h-[min(80vh,600px)] mx-auto rounded-lg overflow-hidden shadow-lg relative">
-            {chessModule && fen ? (
-              <ChessboardComponent
-                id="BasicBoard"
-                arePremovesAllowed={true}
-                clearPremovesOnRightClick={true}
-                animationDuration={200}
-                position={fen}
-                onPieceDrop={onDrop}
-                onSquareClick={handleSquareClick}
-                boardOrientation={
-                  currentPlayerColor === "black" ? "black" : "white"
-                }
-                customBoardStyle={{
-                  borderRadius: "0.5rem",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
-                }}
-                customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
-                customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
-                showBoardNotation={true}
-                customSquareStyles={boardStyles}
-                promotionDialogVariant={"modal"}
-                showPromotionDialog={isPromotionDialogOpen}
-                onPromotionPieceSelect={(piece, from, to) => {
-                  if (promotionDataRef.current) {
-                    // Fue click-to-move
-                    const selectedPiece = promotionDataRef.current.piece;
-                    const refFrom = promotionDataRef.current.from;
-                    const refTo = promotionDataRef.current.to;
-                    promotionDataRef.current = null;
-                    setIsPromotionDialogOpen(false);
-                    return handleMove(refFrom, refTo, piece ?? "");
-                  }
-
-                  if (!piece || !from || !to) return false;
-                  handleMove(from, to, piece);
-                  return true;
+            {fen ? (
+              <Chess98Board
+                ref={boardRef}
+                initialFen={fen}
+                playerColor={currentPlayerColor === "black" ? "b" : "w"}
+                orientation={currentPlayerColor === "black" ? "black" : "white"}
+                onMove={(move) => {
+                  if (!move) return;
+                  gameplayService.sendMove(move.uci);
                 }}
               />
             ) : (
