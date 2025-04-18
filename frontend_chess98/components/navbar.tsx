@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Home, BookOpen, Settings, User, LogOut } from "lucide-react"
+import { Home, BookOpen, Settings, User, LogOut, Menu } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
 import {
   DropdownMenu,
@@ -15,11 +15,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export function Navbar() {
   const pathname = usePathname()
   const { user, isAuthenticated, logout } = useAuthStore()
   const router = useRouter()
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
     { name: "Home", href: "/", icon: Home },
@@ -72,6 +75,14 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="md:hidden border-slate-700 bg-slate-800/50 hover:bg-slate-700"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -121,6 +132,31 @@ export function Navbar() {
             )}
           </div>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-slate-800 border-t border-slate-700 absolute left-0 right-0 z-50 shadow-lg">
+            <div className="py-2 px-4">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href
+                const Icon = item.icon
+
+                return (
+                  <Link key={item.name} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+                    <div
+                      className={`flex items-center gap-2 py-3 px-2 rounded-md ${isActive
+                          ? "bg-gradient-to-r from-indigo-600/20 to-purple-700/20 text-white"
+                          : "text-slate-300 hover:bg-slate-700/50"
+                        }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )

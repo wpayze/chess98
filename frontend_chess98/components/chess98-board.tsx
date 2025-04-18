@@ -161,6 +161,23 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
             return handleMove(sourceSquare, targetSquare, promotion);
         };
 
+        const handlePromotionPieceSelect = (piece?: string, from?: string, to?: string) => {
+            if (!piece) return false;
+
+            const promotion = piece.length > 1 ? piece[1].toLowerCase() : piece.toLowerCase();
+
+            if (promotionDataRef.current) {
+                const refFrom = promotionDataRef.current.from;
+                const refTo = promotionDataRef.current.to;
+                promotionDataRef.current = null;
+                setIsPromotionDialogOpen(false);
+                return handleMove(refFrom, refTo, promotion);
+            }
+
+            if (!from || !to) return false;
+            return handleMove(from, to, promotion);
+        }
+
         const getSquareStyles = () => {
             const styles: Record<string, React.CSSProperties> = {};
 
@@ -186,27 +203,31 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         //Funciones externas
         const applyExternalMove = ({ from, to, fen, turn }: { from: string; to: string; fen: string; turn: "w" | "b"; }) => {
             const isOpponentMove = turn === playerColor;
+        
             if (isOpponentMove) {
-                const tempMove = gameRef.current.move({ from, to, promotion: "q" });
-
-                if (tempMove) {
-                    handleMoveSound(gameRef.current, tempMove);
-                    gameRef.current.undo();
+                try {
+                    const tempMove = gameRef.current.move({ from, to, promotion: "q" });
+        
+                    if (tempMove) {
+                        handleMoveSound(gameRef.current, tempMove);
+                    }
+                } catch (err) {
+                    console.warn("[applyExternalMove] Simulated move failed", { from, to, err });
                 }
             }
-
+        
             gameRef.current.load(fen);
-
+        
             setLastMoveFrom(from as Square);
             setLastMoveTo(to as Square);
-
+        
             const currentTurn = gameRef.current.turn();
             const kingSquare = findKingSquare(gameRef.current, currentTurn);
             setInCheckSquare(gameRef.current.inCheck() && kingSquare ? (kingSquare as Square) : null);
-
+        
             triggerBoardUpdate();
         };
-
+        
         useImperativeHandle(ref, () => ({
             applyExternalMove,
         }));
@@ -229,22 +250,7 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
                 animationDuration={200}
                 showBoardNotation={true}
                 showPromotionDialog={isPromotionDialogOpen}
-                onPromotionPieceSelect={(piece, from, to) => {
-                    if (!piece) return false;
-
-                    const promotion = piece.length > 1 ? piece[1].toLowerCase() : piece.toLowerCase();
-
-                    if (promotionDataRef.current) {
-                        const refFrom = promotionDataRef.current.from;
-                        const refTo = promotionDataRef.current.to;
-                        promotionDataRef.current = null;
-                        setIsPromotionDialogOpen(false);
-                        return handleMove(refFrom, refTo, promotion);
-                    }
-
-                    if (!from || !to) return false;
-                    return handleMove(from, to, promotion);
-                }}
+                onPromotionPieceSelect={handlePromotionPieceSelect}
             />
         );
     });
