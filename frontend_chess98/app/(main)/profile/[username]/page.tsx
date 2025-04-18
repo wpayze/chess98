@@ -278,8 +278,8 @@ export default function ProfilePage() {
                   <span className="text-xl font-bold text-white">
                     {profile.total_games > 0
                       ? `${((profile.wins / profile.total_games) * 100).toFixed(
-                          1
-                        )}%`
+                        1
+                      )}%`
                       : "0%"}
                   </span>
                 </div>
@@ -328,6 +328,26 @@ export default function ProfilePage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
+                    <BarChart2 className="h-4 w-4 text-white" />
+                  </div>
+                  <CardTitle className="text-white text-lg">Puzzles</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                    {profile.ratings.puzzle}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    Tactical training
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
                     <Zap className="h-4 w-4 text-white" />
                   </div>
                   <CardTitle className="text-white text-lg">Bullet</CardTitle>
@@ -337,9 +357,6 @@ export default function ProfilePage() {
                 <div className="text-center">
                   <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                     {profile.ratings.bullet}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-1">
-                    1+0, 1+1, 2+1
                   </div>
                 </div>
               </CardContent>
@@ -359,9 +376,6 @@ export default function ProfilePage() {
                   <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                     {profile.ratings.blitz}
                   </div>
-                  <div className="text-xs text-slate-400 mt-1">
-                    3+0, 3+2, 5+0
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -380,7 +394,6 @@ export default function ProfilePage() {
                   <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                     {profile.ratings.rapid}
                   </div>
-                  <div className="text-xs text-slate-400 mt-1">10+0, 15+10</div>
                 </div>
               </CardContent>
             </Card>
@@ -400,28 +413,6 @@ export default function ProfilePage() {
                 <div className="text-center">
                   <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                     {profile.ratings.classical}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-1">30+0, 30+20</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
-                    <BarChart2 className="h-4 w-4 text-white" />
-                  </div>
-                  <CardTitle className="text-white text-lg">Puzzles</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-                    {profile.ratings.puzzle}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-1">
-                    Tactical training
                   </div>
                 </div>
               </CardContent>
@@ -466,13 +457,12 @@ export default function ProfilePage() {
                       <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-2 h-full min-h-[40px] rounded-l-lg ${
-                              game.result === "win"
-                                ? "bg-green-500"
-                                : game.result === "loss"
+                            className={`w-2 h-full min-h-[40px] rounded-l-lg ${game.result === "win"
+                              ? "bg-green-500"
+                              : game.result === "loss"
                                 ? "bg-red-500"
                                 : "bg-slate-500"
-                            }`}
+                              }`}
                           ></div>
 
                           {/* Add the mini chessboard */}
@@ -513,19 +503,18 @@ export default function ProfilePage() {
                               </span>
                               <span className="text-slate-500">•</span>
                               <span
-                                className={`${
-                                  game.result === "win"
-                                    ? "text-green-400"
-                                    : game.result === "loss"
+                                className={`${game.result === "win"
+                                  ? "text-green-400"
+                                  : game.result === "loss"
                                     ? "text-red-400"
                                     : "text-slate-400"
-                                }`}
+                                  }`}
                               >
                                 {game.result === "win"
                                   ? "Won"
                                   : game.result === "loss"
-                                  ? "Lost"
-                                  : "Draw"}{" "}
+                                    ? "Lost"
+                                    : "Draw"}{" "}
                                 by {game.end_reason}
                               </span>
                             </div>
@@ -537,13 +526,12 @@ export default function ProfilePage() {
                               {game.opponent.rating}
                             </span>
                             <span
-                              className={`text-sm font-medium ${
-                                game.rating_change > 0
-                                  ? "text-green-400"
-                                  : game.rating_change < 0
+                              className={`text-sm font-medium ${game.rating_change > 0
+                                ? "text-green-400"
+                                : game.rating_change < 0
                                   ? "text-red-400"
                                   : "text-slate-400"
-                              }`}
+                                }`}
                             >
                               ({game.rating_change > 0 ? "+" : ""}
                               {game.rating_change})
@@ -617,20 +605,19 @@ export default function ProfilePage() {
                               <span className="text-slate-500">•</span>
                               <div className="flex items-center">
                                 <div
-                                  className={`w-2 h-2 rounded-full mr-1 ${
-                                    friend.status === "online"
-                                      ? "bg-green-500"
-                                      : friend.status === "playing"
+                                  className={`w-2 h-2 rounded-full mr-1 ${friend.status === "online"
+                                    ? "bg-green-500"
+                                    : friend.status === "playing"
                                       ? "bg-amber-500"
                                       : "bg-slate-500"
-                                  }`}
+                                    }`}
                                 ></div>
                                 <span className="text-slate-400">
                                   {friend.status === "online"
                                     ? "Online"
                                     : friend.status === "playing"
-                                    ? "Playing"
-                                    : `Last seen ${timeAgo(friend.lastActive)}`}
+                                      ? "Playing"
+                                      : `Last seen ${timeAgo(friend.lastActive)}`}
                                 </span>
                               </div>
                             </div>

@@ -102,7 +102,7 @@ export class StockfishService {
 
   public startAnalysis(fen: string, depth: number = 20) {
     this.initWorker();
-    this.initFullWorkerIfNeeded();
+    //this.initFullWorkerIfNeeded(); //cargar el stockfish pesado
 
     this.postMessage(`position fen ${fen}`);
     this.postMessage(`go depth ${depth}`);
