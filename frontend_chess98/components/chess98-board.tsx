@@ -79,7 +79,14 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         }, [initialFen]);
 
         const handleMove = (from: string, to: string, promotion?: string) => {
-            const move = gameRef.current.move({ from, to, promotion: promotion ?? "q" });
+            let move = null;
+            try {
+                move = gameRef.current.move({ from, to, promotion: promotion ?? "q" });
+            } catch (err) {
+                console.warn("Move error:", err);
+                return false;
+            }
+
             const turn = gameRef.current.turn();
             const uci = `${from}${to}${move?.promotion ?? ""}`;
 
@@ -203,11 +210,11 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         //Funciones externas
         const applyExternalMove = ({ from, to, fen, turn }: { from: string; to: string; fen: string; turn: "w" | "b"; }) => {
             const isOpponentMove = turn === playerColor;
-        
+
             if (isOpponentMove) {
                 try {
                     const tempMove = gameRef.current.move({ from, to, promotion: "q" });
-        
+
                     if (tempMove) {
                         handleMoveSound(gameRef.current, tempMove);
                     }
@@ -215,19 +222,19 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
                     console.warn("[applyExternalMove] Simulated move failed", { from, to, err });
                 }
             }
-        
+
             gameRef.current.load(fen);
-        
+
             setLastMoveFrom(from as Square);
             setLastMoveTo(to as Square);
-        
+
             const currentTurn = gameRef.current.turn();
             const kingSquare = findKingSquare(gameRef.current, currentTurn);
             setInCheckSquare(gameRef.current.inCheck() && kingSquare ? (kingSquare as Square) : null);
-        
+
             triggerBoardUpdate();
         };
-        
+
         useImperativeHandle(ref, () => ({
             applyExternalMove,
         }));

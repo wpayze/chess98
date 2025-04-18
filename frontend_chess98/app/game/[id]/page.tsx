@@ -653,13 +653,6 @@ export default function GameViewPage() {
     return `${currentEvaluation > 0 ? "+" : ""}${currentEvaluation.toFixed(2)}`;
   };
 
-  const getEvaluationTextColor = () => {
-    if (mateIn !== null) return "text-red-500";
-    if (currentEvaluation > 0.3) return "text-green-400";
-    if (currentEvaluation < -0.3) return "text-red-400";
-    return "text-slate-200";
-  };
-
   const PlayerHeader = ({ color }: { color: "white" | "black" }) => {
     const isWhite = color === "white";
     const player = isWhite ? game.white_player : game.black_player;
@@ -713,11 +706,11 @@ export default function GameViewPage() {
       <div className="container mx-auto px-4 flex-1 flex flex-col">
         <div className="mb-4">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/games")}
             className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-2"
           >
             <ChevronLeft className="h-4 w-4" />
-            <span>Back</span>
+            <span>Go to Recent Games</span>
           </button>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -769,7 +762,7 @@ export default function GameViewPage() {
               ) : (
                 <>
                   <div
-                    className={`text-xl font-bold ${getEvaluationTextColor()}`}
+                    className={`text-xl font-bold`}
                   >
                     {formatEvaluation()}
                   </div>

@@ -212,7 +212,7 @@ export default function PlayPage() {
         } else if (user?.id === black_player.id) {
           setCurrentPlayerColor("black")
           setCurrentPlayerData(black_player)
-          setOpponentPlayerData(black_player)
+          setOpponentPlayerData(white_player)
         } else {
           console.warn("User is not a participant in this game.")
         }
