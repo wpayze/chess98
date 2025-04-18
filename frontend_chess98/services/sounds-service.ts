@@ -13,11 +13,18 @@ const soundCache: Record<SOUNDS, HTMLAudioElement> = {
 }
 
 export const playSound = (sound: SOUNDS) => {
-  const audio = soundCache[sound]
-  if (!audio) return
+  try {
+    const audio = soundCache[sound]
+    if (!audio) {
+      console.warn("Audio not found for sound key:", sound)
+      return
+    }
 
-  audio.currentTime = 0
-  audio.play().catch((e) => {
-    console.warn("Unable to play sound:", sound, e)
-  })
+    audio.currentTime = 0
+    audio.play().catch((e) => {
+      console.warn("Unable to play sound (play error):", sound, e)
+    })
+  } catch (e) {
+    console.warn("Error in playSound:", sound, e)
+  }
 }

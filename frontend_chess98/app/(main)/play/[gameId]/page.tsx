@@ -97,7 +97,8 @@ export default function PlayPage() {
       },
       onGameReady: (data) => {
         playSound(SOUNDS.GAME_START)
-
+        gameplayService.sendTimeoutCheck()
+        
         setIsOpponentReady(true)
         setFen(data.initial_fen)
         setWhiteTime(data.your_time)
@@ -233,7 +234,7 @@ export default function PlayPage() {
     const interval = setInterval(() => {
       if (isWhiteTurn) {
         setWhiteTime((prev) => {
-          if (prev <= 0) {
+          if (prev <= 0 && gameStatus === "active") {
             gameplayService.sendTimeoutCheck()
             return 0
           }
@@ -241,7 +242,7 @@ export default function PlayPage() {
         })
       } else {
         setBlackTime((prev) => {
-          if (prev <= 0) {
+          if (prev <= 0 && gameStatus === "active") {
             gameplayService.sendTimeoutCheck()
             return 0
           }
