@@ -13,7 +13,12 @@ export enum ENDPOINTS {
   RECENT_GAMES = "/games/recent",
 
   // Profile endpoint
-  PROFILE_BY_USERNAME = "/profiles/username/:username"
+  PROFILE_BY_USERNAME = "/profiles/username/:username",
+
+  // Puzzle endpoints
+  GET_PUZZLE_BY_ID = "/puzzles/:puzzle_id",
+  SOLVE_PUZZLE = "/puzzles/:puzzle_id/solved",
+  REFRESH_PUZZLE = "/puzzles/refresh",
 }
 
 /**
