@@ -304,7 +304,7 @@ export default function ExercisesPage() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-4 p-4 bg-slate-800/50 rounded-md border border-slate-700/50">
+                  <div className={`mt-4 p-4 ${playerColor === "white"? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 flex items-center justify-center">
@@ -315,8 +315,8 @@ export default function ExercisesPage() {
                           )}
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-white">Your turn</h3>
-                          <p className="text-sm text-slate-300">
+                          <h3 className={`text-lg font-bold ${playerColor === "white" ? "text-white" : "text-black"}`}>Your turn</h3>
+                          <p className={`text-sm ${playerColor === "white" ? "text-slate-300" : "text-black"}`}>
                             Find the best move for {playerColor === "white" ? "white" : "black"}.
                           </p>
                         </div>
