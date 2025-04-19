@@ -25,13 +25,23 @@ async def get_puzzle_by_id(puzzle_id: str, db: AsyncSession) -> Puzzle:
 async def get_puzzle_by_rating(rating: float, profile_id: UUID, db: AsyncSession) -> Optional[Puzzle]:
     subquery = select(PuzzleSolve.puzzle_id).where(PuzzleSolve.profile_id == profile_id)
 
-    # Primero contamos cuántos puzzles están en el rango y no han sido resueltos por el usuario
-    count_query = select(func.count()).select_from(
+    result = await db.execute(
         select(Puzzle)
         .where(
-            Puzzle.rating.between(rating - 40, rating + 40),
+            Puzzle.rating.between(rating - 25, rating + 25),
             Puzzle.id.not_in(subquery)
-        ).subquery()
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+#experimental
+async def get_random_puzzle_by_rating_fast(rating: float, db: AsyncSession) -> Optional[Puzzle]:
+    # Contamos cuántos puzzles hay en el rango
+    count_query = select(func.count()).select_from(
+        select(Puzzle)
+        .where(Puzzle.rating.between(rating - 40, rating + 40))
+        .subquery()
     )
 
     total = await db.scalar(count_query)
@@ -39,14 +49,12 @@ async def get_puzzle_by_rating(rating: float, profile_id: UUID, db: AsyncSession
     if not total or total == 0:
         return None
 
-    offset = random.randint(0, max(0, total - 1))
+    offset = random.randint(0, total - 1)
 
+    # Traemos un puzzle aleatorio por offset
     result = await db.execute(
         select(Puzzle)
-        .where(
-            Puzzle.rating.between(rating - 40, rating + 40),
-            Puzzle.id.not_in(subquery)
-        )
+        .where(Puzzle.rating.between(rating - 40, rating + 40))
         .offset(offset)
         .limit(1)
     )

@@ -6,7 +6,8 @@ from app.services.profile import get_profile_by_user_id
 from app.services.puzzle import (
     solve_puzzle_and_get_next,
     refresh_active_puzzle,
-    get_puzzle_by_id
+    get_puzzle_by_id,
+    get_random_puzzle_by_rating_fast
 )
 
 class PuzzleController:
@@ -36,3 +37,18 @@ class PuzzleController:
 
         new_puzzle_id = await refresh_active_puzzle(profile, db)
         return {"new_puzzle_id": new_puzzle_id}
+
+
+    #experimental
+    @staticmethod
+    async def get_multiple_experimental_by_rating(
+        rating: float,
+        calls: int,
+        db: AsyncSession,
+    ):
+        results = []
+        for _ in range(calls):
+            puzzle = await get_random_puzzle_by_rating_fast(rating, db)
+            if puzzle:
+                results.append(puzzle)
+        return results

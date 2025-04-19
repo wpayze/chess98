@@ -6,6 +6,8 @@ from app.database.connection import get_db
 from app.controllers.puzzle import PuzzleController
 from app.schemas.puzzle import PuzzleSolveResult, PuzzleRefreshResult, PuzzleOut
 
+#test
+from typing import List
 
 router = APIRouter(prefix="/puzzles", tags=["puzzles"])
 
@@ -41,3 +43,16 @@ async def refresh_puzzle(
     Asigna un nuevo puzzle al usuario. Útil cuando aún no tiene uno o quiere cambiar el actual.
     """
     return await PuzzleController.refresh_puzzle(user_id, db)
+
+#experimental - testing
+@router.get("/experimental/by-rating", response_model=List[PuzzleOut])
+async def get_experimental_puzzles_by_rating(
+    rating: float = Query(..., description="User's current puzzle rating"),
+    calls: int = Query(1, description="Number of times to call the experimental fetch"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Experimental: Devuelve una lista de puzzles aleatorios en el rango del rating dado.
+    Permite múltiples llamadas para analizar repetición o rendimiento.
+    """
+    return await PuzzleController.get_multiple_experimental_by_rating(rating, calls, db)
