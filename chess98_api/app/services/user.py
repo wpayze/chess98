@@ -17,7 +17,7 @@ from typing import Dict, List
 
 
 async def get_top_users_by_rating(db: AsyncSession) -> Dict[str, List[dict]]:
-    time_controls = ["bullet", "blitz", "rapid"]
+    time_controls = ["bullet", "blitz", "rapid", "puzzle"]
     top_players = {}
 
     for control in time_controls:

@@ -28,6 +28,7 @@ const getTitleColor = (title: string) => {
 export default function TopPlayersRanking() {
   const [loading, setLoading] = useState(true);
   const [topPlayers, setTopPlayers] = useState<Record<string, TopPlayer[]>>({
+    puzzle: [],
     blitz: [],
     rapid: [],
     bullet: [],
@@ -65,10 +66,10 @@ export default function TopPlayersRanking() {
 
       <Card className="shadow-lg border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm max-w-3xl mx-auto">
         <CardContent className="pt-6">
-          <Tabs defaultValue="blitz">
+          <Tabs defaultValue="puzzle">
             <TabsList className="grid grid-cols-3 mb-6 w-full max-w-md mx-auto">
+              <TabsTrigger value="puzzle">Puzzle</TabsTrigger>
               <TabsTrigger value="blitz">Blitz</TabsTrigger>
-              <TabsTrigger value="rapid">Rapid</TabsTrigger>
               <TabsTrigger value="bullet">Bullet</TabsTrigger>
             </TabsList>
 

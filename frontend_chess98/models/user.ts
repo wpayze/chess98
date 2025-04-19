@@ -93,6 +93,7 @@ export interface FriendSummary {
 }
 
 export type TopPlayersResponse = {
+  puzzle: TopPlayer[];
   bullet: TopPlayer[];
   blitz: TopPlayer[];
   rapid: TopPlayer[];
