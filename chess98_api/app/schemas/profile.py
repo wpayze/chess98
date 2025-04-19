@@ -6,6 +6,7 @@ from datetime import datetime
 class ProfileOut(BaseModel):
     id: UUID
     user_id: UUID
+    active_puzzle_id: Optional[str] = None
     display_name: str
     bio: Optional[str]
     country: Optional[str]

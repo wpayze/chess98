@@ -6,6 +6,7 @@ from enum import Enum
 from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Integer, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.mutable import MutableDict
 from app.database.base import Base
 
 class TitleEnum(str, Enum):
@@ -30,7 +31,7 @@ class Profile(Base):
     avatar_url = Column(String, nullable=True)
     
     ratings = Column(
-        JSON,
+        MutableDict.as_mutable(JSON),
         default=lambda: {
             "bullet": 1200,
             "blitz": 1200,
@@ -52,3 +53,8 @@ class Profile(Base):
     last_active = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
     
     user = relationship("User", back_populates="profile")
+
+    # Puzzles
+    active_puzzle_id = Column(String, ForeignKey("puzzles.id"), nullable=True)
+    active_puzzle = relationship("Puzzle", back_populates="profiles_with_active_puzzle")
+    puzzle_solves = relationship("PuzzleSolve", back_populates="profile", cascade="all, delete-orphan")

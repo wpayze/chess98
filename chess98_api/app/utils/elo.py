@@ -23,3 +23,9 @@ def update_ratings(white_rating: int, black_rating: int, result: GameResult, k: 
     black_change = round(k * (actual_black - expected_black))
 
     return white_change, black_change
+
+def update_puzzle_rating(user_rating: int, puzzle_rating: int, success: bool, k: int = 40) -> int:
+    actual_score = 1 if success else 0
+    expected = expected_score(user_rating, puzzle_rating)
+    delta = round(k * (actual_score - expected))
+    return delta

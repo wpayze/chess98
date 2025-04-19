@@ -7,3 +7,5 @@ from .profile import Profile
 from .settings import Settings
 from .user_achievement import UserAchievement
 from .user import User
+from .puzzle import Puzzle
+from .puzzle_solve import PuzzleSolve
