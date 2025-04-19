@@ -1,5 +1,5 @@
-import uuid
 from sqlalchemy import Column, String, Float, Integer, Text, JSON
+import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 from app.database.base import Base
@@ -7,6 +7,9 @@ from app.database.base import Base
 
 class Puzzle(Base):
     __tablename__ = "puzzles"
+    __table_args__ = (
+        sa.Index("idx_puzzles_rating_id", "rating", "id"),
+    )
 
     id = Column(String, primary_key=True)
     fen = Column(Text, nullable=False)

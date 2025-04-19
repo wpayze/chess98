@@ -100,7 +100,7 @@ export default function ExercisesPage() {
     if (!move || !puzzle || !profile) return;
 
     const expectedMove = moveSequence[moveIndex];
-    
+
     if (move.uci === expectedMove) {
       // ✅ Jugada correcta
       const newIndex = moveIndex + 1;
@@ -225,17 +225,30 @@ export default function ExercisesPage() {
             )}
 
             {moveFeedback === "wrong" && (
-              <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
-                <CardContent className="p-4">
-                  <p className="text-sm text-slate-300 mb-3">Want to try this puzzle again?</p>
-                  <Button
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
-                    onClick={() => navigate(`/exercises/${puzzle?.id}`)}
-                  >
-                    RETRY
-                  </Button>
-                </CardContent>
-              </Card>
+              <>
+                <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-slate-300 mb-3">Want to try this puzzle again?</p>
+                    <Button
+                      className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
+                      onClick={() => navigate(`/exercises/${puzzle?.id}`)}
+                    >
+                      RETRY
+                    </Button>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+                  <CardContent className="p-4">
+                    <Button
+                      className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
+                      onClick={() => navigate("/exercises")}
+                    >
+                      <SkipForward className="h-4 w-4 mr-2" />
+                      Go to Next Exercise
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
             )}
 
             {/* {isPuzzleComplete && (
@@ -247,19 +260,9 @@ export default function ExercisesPage() {
               //     </div>
               //   </CardContent>
               // </Card>
-
-              // <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
-              //   <CardContent className="p-4">
-              //     <Button
-              //       className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
-              //       onClick={() => navigate("/exercises")}
-              //     >
-              //       <SkipForward className="h-4 w-4 mr-2" />
-              //       Go to Next Exercise
-              //     </Button>
-              //   </CardContent>
-              // </Card>
             )} */}
+
+
 
 
 
@@ -309,7 +312,7 @@ export default function ExercisesPage() {
                       </div>
                     )}
                   </div>
-                  <div className={`mt-4 p-4 ${playerColor === "white"? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
+                  <div className={`mt-4 p-4 ${playerColor === "white" ? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 flex items-center justify-center">

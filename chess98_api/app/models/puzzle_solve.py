@@ -10,6 +10,7 @@ from sqlalchemy import (
     UniqueConstraint,
     String
 )
+import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
@@ -18,6 +19,9 @@ from app.database.base import Base
 
 class PuzzleSolve(Base):
     __tablename__ = "puzzle_solves"
+    __table_args__ = (
+        sa.Index("idx_puzzle_solves_profile_puzzle", "profile_id", "puzzle_id"),
+    )
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 

@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime, timezone
 from uuid import UUID
+import random
 
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,14 +25,32 @@ async def get_puzzle_by_id(puzzle_id: str, db: AsyncSession) -> Puzzle:
 async def get_puzzle_by_rating(rating: float, profile_id: UUID, db: AsyncSession) -> Optional[Puzzle]:
     subquery = select(PuzzleSolve.puzzle_id).where(PuzzleSolve.profile_id == profile_id)
 
+    # Primero contamos cuántos puzzles están en el rango y no han sido resueltos por el usuario
+    count_query = select(func.count()).select_from(
+        select(Puzzle)
+        .where(
+            Puzzle.rating.between(rating - 40, rating + 40),
+            Puzzle.id.not_in(subquery)
+        ).subquery()
+    )
+
+    total = await db.scalar(count_query)
+
+    if not total or total == 0:
+        return None
+
+    offset = random.randint(0, max(0, total - 1))
+
     result = await db.execute(
         select(Puzzle)
         .where(
-            Puzzle.rating.between(rating - 100, rating + 100),
+            Puzzle.rating.between(rating - 40, rating + 40),
             Puzzle.id.not_in(subquery)
         )
+        .offset(offset)
         .limit(1)
     )
+
     return result.scalar_one_or_none()
 
 async def sum_times_played(puzzle_id: str, db: AsyncSession):
@@ -40,6 +59,14 @@ async def sum_times_played(puzzle_id: str, db: AsyncSession):
         .where(Puzzle.id == puzzle_id)
         .values(times_played=Puzzle.times_played + 1)
     )
+
+def get_k_factor(rating: float) -> int:
+    if rating < 2000:
+        return 40
+    elif rating < 2400:
+        return 20
+    else:
+        return 10
 
 async def solve_puzzle_and_get_next(profile: Profile, puzzle_id: str, success: bool, db: AsyncSession):
     puzzle = await get_puzzle_by_id(puzzle_id, db)
@@ -50,7 +77,9 @@ async def solve_puzzle_and_get_next(profile: Profile, puzzle_id: str, success: b
 
     apply_rating = profile.active_puzzle_id == puzzle_id
 
-    delta = update_puzzle_rating(user_rating, puzzle_rating, success=success, k=40) if apply_rating else 0
+    k = get_k_factor(user_rating)
+    delta = update_puzzle_rating(user_rating, puzzle_rating, success=success, k=k) if apply_rating else 0
+
     new_rating = user_rating + delta if apply_rating else user_rating
 
     if apply_rating:
