@@ -65,7 +65,7 @@ async def solve_puzzle_and_get_next(profile: Profile, puzzle_id: str, success: b
     db.add(solve)
 
     # Asignar nuevo puzzle si fue correcto y era el activo
-    if apply_rating and success:
+    if apply_rating:
         next_puzzle = await get_puzzle_by_rating(new_rating, db)
         if next_puzzle:
             await set_active_puzzle(profile.id, next_puzzle.id, db)

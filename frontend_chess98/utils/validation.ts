@@ -13,9 +13,9 @@ export const validateEmail = (email: string): string | null => {
 export const validatePassword = (password: string): string | null => {
   if (!password) return "Password is required"
 
-  if (password.length < 8) {
-    return "Password must be at least 8 characters long"
-  }
+  // if (password.length < 8) {
+  //   return "Password must be at least 8 characters long"
+  // }
 
   // Check for at least one uppercase letter, one lowercase letter, and one number
   const hasUppercase = /[A-Z]/.test(password)

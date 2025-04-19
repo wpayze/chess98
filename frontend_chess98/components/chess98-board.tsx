@@ -35,6 +35,7 @@ function findKingSquare(game: any, color: "w" | "b"): string | null {
 
 export interface Chess98BoardHandle {
     applyExternalMove: (move: { from: string; to: string; fen: string; turn: "w" | "b" }) => void;
+    applyPuzzleMove: (move: { from: string; to: string }) => void;
 }
 
 interface Chess98BoardProps {
@@ -52,7 +53,6 @@ interface Chess98BoardProps {
 
 export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
     function Chess98Board({ initialFen, orientation = "white", playerColor, onMove }, ref) {
-        const [game, setGame] = useState(() => new Chess(initialFen || "start"));
         const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
         const [lastMoveFrom, setLastMoveFrom] = useState<Square | null>(null);
         const [lastMoveTo, setLastMoveTo] = useState<Square | null>(null);
@@ -60,17 +60,12 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         const promotionDataRef = useRef<{ from: string; to: string } | null>(null);
         const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
 
-        const [, r] = useState(0);
+        const gameRef = useRef(new Chess(initialFen || "start"));
+        const [fen, setFen] = useState<string>(initialFen || gameRef.current.fen());
 
-        const triggerBoardUpdate = () => {
-            r(n => n + 1);
-        };
-
-        const gameRef = useRef(game);
 
         useEffect(() => {
             const newGame = new Chess(initialFen);
-            setGame(newGame);
             gameRef.current = newGame;
 
             const turn = newGame.turn();
@@ -91,6 +86,7 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
             const uci = `${from}${to}${move?.promotion ?? ""}`;
 
             if (move) {
+                setFen(gameRef.current.fen());
                 handleMoveSound(gameRef.current, move);
                 setSelectedSquare(null);
                 setLastMoveFrom(move.from);
@@ -224,25 +220,48 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
             }
 
             gameRef.current.load(fen);
-
+            setFen(fen);
             setLastMoveFrom(from as Square);
             setLastMoveTo(to as Square);
 
             const currentTurn = gameRef.current.turn();
             const kingSquare = findKingSquare(gameRef.current, currentTurn);
             setInCheckSquare(gameRef.current.inCheck() && kingSquare ? (kingSquare as Square) : null);
-
-            triggerBoardUpdate();
         };
+
+        const applyPuzzleMove = ({
+            from,
+            to,
+        }: {
+            from: string
+            to: string
+        }): void => {
+            try {
+                const move = gameRef.current.move({ from, to, promotion: "q" })
+
+                if (move) {
+                    setFen(gameRef.current.fen());
+                    handleMoveSound(gameRef.current, move)
+                    setLastMoveFrom(from as Square)
+                    setLastMoveTo(to as Square)
+                    const currentTurn = gameRef.current.turn()
+                    const kingSquare = findKingSquare(gameRef.current, currentTurn)
+                    setInCheckSquare(gameRef.current.inCheck() && kingSquare ? (kingSquare as Square) : null)
+                }
+            } catch (err) {
+                console.warn("[applyPuzzleMove] Simulated move failed", { from, to, err })
+            }
+        }
 
         useImperativeHandle(ref, () => ({
             applyExternalMove,
+            applyPuzzleMove
         }));
 
         return (
             <Chessboard
                 id="Chess98Board"
-                position={game.fen()}
+                position={fen}
                 onSquareClick={handleSquareClick}
                 onPieceDrop={handlePieceDrop}
                 boardOrientation={orientation}

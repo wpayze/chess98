@@ -13,7 +13,7 @@ from app.database.connection import AsyncSessionLocal
 from app.models.puzzle import Puzzle
 
 
-CSV_PATH = "lichess_1k.csv"
+CSV_PATH = "puzzles.csv"
 BATCH_SIZE = 1000
 
 def parse_row(row: dict) -> dict:

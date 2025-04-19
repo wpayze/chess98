@@ -1,5 +1,6 @@
 export interface Profile {
     id: string
+    active_puzzle_id: string | null
     user_id: string
     display_name: string
     bio: string | null
