@@ -96,13 +96,12 @@ export default function ExercisesPage() {
     loadPuzzle()
   }, [user])
 
-  const handlePlayerMove = async (move: { from: string; to: string }) => {
+  const handlePlayerMove = async (move: { from: string; to: string, uci: string }) => {
     if (!move || !puzzle || !profile) return;
 
     const expectedMove = moveSequence[moveIndex];
-    const moveUci = move.from + move.to;
-
-    if (moveUci === expectedMove) {
+    
+    if (move.uci === expectedMove) {
       // ✅ Jugada correcta
       const newIndex = moveIndex + 1;
 
@@ -126,6 +125,9 @@ export default function ExercisesPage() {
         });
 
         setRatingChange(result.rating_delta);
+        setTimeout(() => {
+          navigate("/exercises");
+        }, 1000); // Navigate after 2 seconds
         console.log("✅ Puzzle resuelto con éxito", result);
       }
     } else {
@@ -155,6 +157,7 @@ export default function ExercisesPage() {
 
   const userRating = profile?.ratings?.puzzle ?? 0
   const timesPlayed = puzzle?.times_played ?? 0
+  const exerciseRating = puzzle?.rating ?? 0
 
   if (!initialFen || !puzzle || !profile) {
     return (
@@ -181,6 +184,7 @@ export default function ExercisesPage() {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-white">Exercise #{puzzle?.id ?? "..."}</h2>
+                    <p className="text-sm text-slate-400">Exercise Rating: {exerciseRating}</p>
                     <p className="text-sm text-slate-400">Played {timesPlayed} times</p>
                   </div>
                 </div>
@@ -234,7 +238,7 @@ export default function ExercisesPage() {
               </Card>
             )}
 
-            {isPuzzleComplete && (
+            {/* {isPuzzleComplete && (
               // <Card className="border-slate-800 bg-gradient-to-br from-indigo-500/10 to-purple-600/10 border-indigo-500/30">
               //   <CardContent className="p-4">
               //     <div className="flex items-center text-indigo-400">
@@ -243,18 +247,19 @@ export default function ExercisesPage() {
               //     </div>
               //   </CardContent>
               // </Card>
-              <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
-                <CardContent className="p-4">
-                  <Button
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
-                    onClick={() => navigate("/exercises")}
-                  >
-                    <SkipForward className="h-4 w-4 mr-2" />
-                    Go to Next Exercise
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+
+              // <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+              //   <CardContent className="p-4">
+              //     <Button
+              //       className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
+              //       onClick={() => navigate("/exercises")}
+              //     >
+              //       <SkipForward className="h-4 w-4 mr-2" />
+              //       Go to Next Exercise
+              //     </Button>
+              //   </CardContent>
+              // </Card>
+            )} */}
 
 
 
