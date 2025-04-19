@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime, timezone
-import random
+from uuid import UUID
 
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,10 +21,15 @@ async def get_puzzle_by_id(puzzle_id: str, db: AsyncSession) -> Puzzle:
     return puzzle
 
 
-async def get_puzzle_by_rating(rating: float, db: AsyncSession) -> Optional[Puzzle]:
+async def get_puzzle_by_rating(rating: float, profile_id: UUID, db: AsyncSession) -> Optional[Puzzle]:
+    subquery = select(PuzzleSolve.puzzle_id).where(PuzzleSolve.profile_id == profile_id)
+
     result = await db.execute(
         select(Puzzle)
-        .where(Puzzle.rating.between(rating - 50, rating + 50))
+        .where(
+            Puzzle.rating.between(rating - 100, rating + 100),
+            Puzzle.id.not_in(subquery)
+        )
         .limit(1)
     )
     return result.scalar_one_or_none()
@@ -65,7 +70,7 @@ async def solve_puzzle_and_get_next(profile: Profile, puzzle_id: str, success: b
 
     # Asignar nuevo puzzle si fue correcto y era el activo
     if apply_rating:
-        next_puzzle = await get_puzzle_by_rating(new_rating, db)
+        next_puzzle = await get_puzzle_by_rating(new_rating, profile.id, db)
         if next_puzzle:
             await set_active_puzzle(profile.id, next_puzzle.id, db)
             next_puzzle_id = next_puzzle.id
@@ -87,7 +92,7 @@ async def solve_puzzle_and_get_next(profile: Profile, puzzle_id: str, success: b
 
 async def refresh_active_puzzle(profile: Profile, db: AsyncSession) -> str:
     rating = profile.ratings.get("puzzle", 500)
-    puzzle = await get_puzzle_by_rating(rating, db)
+    puzzle = await get_puzzle_by_rating(rating, profile.id, db)
 
     if not puzzle:
         raise HTTPException(status_code=404, detail="No puzzle found")
