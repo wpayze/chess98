@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime, timezone
+import random
 
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,12 +24,10 @@ async def get_puzzle_by_id(puzzle_id: str, db: AsyncSession) -> Puzzle:
 async def get_puzzle_by_rating(rating: float, db: AsyncSession) -> Optional[Puzzle]:
     result = await db.execute(
         select(Puzzle)
-        .where(Puzzle.rating.between(rating - 100, rating + 100))
-        .order_by(func.random())
+        .where(Puzzle.rating.between(rating - 50, rating + 50))
         .limit(1)
     )
     return result.scalar_one_or_none()
-
 
 async def sum_times_played(puzzle_id: str, db: AsyncSession):
     await db.execute(

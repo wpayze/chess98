@@ -191,9 +191,9 @@ export default function ExercisesPage() {
                     {userRating}
                   </div>
                   {isPuzzleComplete && (
-                    <div className={`text-sm mt-1 ${ratingChange > 0 ? "text-green-400" : "text-red-400"}`}>
+                    <div className={`text-sm mt-1 ${ratingChange >= 0 ? "text-green-400" : "text-red-400"}`}>
                       {ratingChange > 0 ? "+" : ""}
-                      {ratingChange}
+                      {ratingChange === 0 ? "No change" : ratingChange}
                     </div>
                   )}
                 </div>
