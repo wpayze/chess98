@@ -399,6 +399,10 @@ export default function ProfilePage() {
               <Activity className="h-4 w-4" />
               <span>Recent Games</span>
             </TabsTrigger>
+            <TabsTrigger value="puzzles" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              <span>Solved Puzzles</span>
+            </TabsTrigger>
             <TabsTrigger value="friends" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span>Friends</span>
@@ -406,10 +410,6 @@ export default function ProfilePage() {
             <TabsTrigger value="achievements" className="flex items-center gap-2">
               <Award className="h-4 w-4" />
               <span>Achievements</span>
-            </TabsTrigger>
-            <TabsTrigger value="puzzles" className="flex items-center gap-2">
-              <Lightbulb className="h-4 w-4" />
-              <span>Solved Puzzles</span>
             </TabsTrigger>
           </TabsList>
 
