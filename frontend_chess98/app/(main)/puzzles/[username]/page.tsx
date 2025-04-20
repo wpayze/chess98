@@ -38,7 +38,7 @@ export default function UserPuzzlesPage() {
                 const userStats = await puzzleService.getPuzzleStatsByUsername(
                     username);
 
-                console.log({userSolves, userStats})
+                console.log({ userSolves, userStats })
 
                 setPuzzleStats(userStats)
                 setUserSolves(userSolves)
@@ -171,11 +171,10 @@ export default function UserPuzzlesPage() {
                                                             {solve.puzzle.themes[0]}
                                                         </Badge>
                                                         <Badge
-                                                            className={
-                                                                solve.success
-                                                                    ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                                                    : "bg-red-500/20 text-red-400 border-red-500/30"
-                                                            }
+                                                            className={`
+                                                                ${solve.success ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}
+                                                                hidden md:inline-flex
+                                                            `}
                                                         >
                                                             {solve.success ? "Solved" : "Failed"}
                                                         </Badge>
@@ -191,15 +190,15 @@ export default function UserPuzzlesPage() {
                                                 <div className="flex items-center">
                                                     <span className="text-slate-300 mr-2">{solve.rating_before}</span>
                                                     <span
-                                                        className={`text-sm font-medium ${ (solve.rating_delta??0) > 0
+                                                        className={`text-sm font-medium ${(solve.rating_delta ?? 0) > 0
                                                             ? "text-green-400"
-                                                            : (solve.rating_delta??0) < 0
+                                                            : (solve.rating_delta ?? 0) < 0
                                                                 ? "text-red-400"
                                                                 : "text-slate-400"
                                                             }`}
                                                     >
-                                                        ({(solve.rating_delta??0) > 0 ? "+" : ""}
-                                                        {(solve.rating_delta??0)})
+                                                        ({(solve.rating_delta ?? 0) > 0 ? "+" : ""}
+                                                        {(solve.rating_delta ?? 0)})
                                                     </span>
                                                 </div>
                                                 <ChevronRight className="h-4 w-4 text-slate-500 mt-1" />
