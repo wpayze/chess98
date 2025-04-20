@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.connection import get_db
 from app.controllers.puzzle import PuzzleController
 from app.schemas.puzzle import PuzzleSolveResult, PuzzleRefreshResult, PuzzleOut
+from app.schemas.puzzle_solve import PaginatedPuzzleSolves, PuzzleSolveStatsResponse
 
 #test
 from typing import List
@@ -43,6 +44,29 @@ async def refresh_puzzle(
     Asigna un nuevo puzzle al usuario. Útil cuando aún no tiene uno o quiere cambiar el actual.
     """
     return await PuzzleController.refresh_puzzle(user_id, db)
+
+@router.get("/user/{username}", response_model=PaginatedPuzzleSolves)
+async def get_user_solves(
+    username: str,
+    only_rated: bool = Query(True),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Obtiene los puzzles que un usuario ha resuelto, filtrando si fueron rateados o no.
+    """
+    return await PuzzleController.get_paginated_solves_by_username(username, only_rated, page, page_size, db)
+
+@router.get("/{username}/stats", response_model=PuzzleSolveStatsResponse)
+async def get_stats_for_user(
+    username: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Devuelve estadísticas de solves del usuario.
+    """
+    return await PuzzleController.get_stats_by_username(username, db)
 
 #experimental - testing
 @router.get("/experimental/by-rating", response_model=List[PuzzleOut])

@@ -2,8 +2,10 @@ from typing import Optional
 from datetime import datetime, timezone
 from uuid import UUID
 import random
+from math import ceil
 
 from sqlalchemy import select, update, func
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
@@ -138,3 +140,42 @@ async def refresh_active_puzzle(profile: Profile, db: AsyncSession) -> str:
     await db.commit()
 
     return puzzle.id
+
+async def get_puzzles_by_profile_id(
+    profile_id: UUID,
+    only_rated: bool,
+    page: int,
+    page_size: int,
+    db: AsyncSession
+):
+    base_query = select(PuzzleSolve).where(PuzzleSolve.profile_id == profile_id)
+
+    if only_rated:
+        base_query = base_query.where(PuzzleSolve.rating_delta != 0)
+
+    # Contar total con subquery
+    count_result = await db.execute(
+        select(func.count()).select_from(base_query.subquery())
+    )
+    total = count_result.scalar()
+
+    total_pages = ceil(total / page_size)
+    offset = (page - 1) * page_size
+
+    # Cargar puzzles en el mismo query
+    paginated_query = (
+        base_query.options(joinedload(PuzzleSolve.puzzle))
+        .order_by(PuzzleSolve.solved_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    result = await db.execute(paginated_query)
+    solves = result.scalars().all()
+
+    return {
+        "data": solves,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }

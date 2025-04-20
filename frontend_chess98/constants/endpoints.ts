@@ -19,6 +19,8 @@ export enum ENDPOINTS {
   GET_PUZZLE_BY_ID = "/puzzles/:puzzle_id",
   SOLVE_PUZZLE = "/puzzles/:puzzle_id/solved",
   REFRESH_PUZZLE = "/puzzles/refresh",
+  GET_PUZZLE_SOLVES_BY_USERNAME = "/puzzles/user/:username",
+  GET_PUZZLE_STATS_BY_USERNAME = "/puzzles/:username/stats",
 }
 
 /**

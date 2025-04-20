@@ -1,4 +1,4 @@
-import { Puzzle, PuzzleRefreshResult, PuzzleSolveResult } from "@/models/puzzle";
+import { Puzzle, PuzzleRefreshResult, PuzzleSolveListResponse, PuzzleSolveResult, PuzzleSolveStatsResponse } from "@/models/puzzle";
 import { ApiService } from "./api-service"
 import { ENDPOINTS, replacePathParams } from "@/constants/endpoints"
 
@@ -30,6 +30,25 @@ class PuzzleService extends ApiService {
       method: "POST",
       body: JSON.stringify(data),
     })
+  }
+
+  /**
+ * Get all puzzle solves by username
+ */
+  async getPuzzleSolvesByUsername(
+    username: string,
+    onlyRated = true,
+    page = 1,
+    pageSize = 10
+  ): Promise<PuzzleSolveListResponse> {
+    const endpoint = replacePathParams(ENDPOINTS.GET_PUZZLE_SOLVES_BY_USERNAME, { username });
+    const url = `${endpoint}?onlyRated=${onlyRated}&page=${page}&page_size=${pageSize}`;
+    return this.fetchPublic<PuzzleSolveListResponse>(url);
+  }
+
+  async getPuzzleStatsByUsername(username: string): Promise<PuzzleSolveStatsResponse> {
+    const endpoint = replacePathParams(ENDPOINTS.GET_PUZZLE_STATS_BY_USERNAME, { username });
+    return this.fetchPublic<PuzzleSolveStatsResponse>(endpoint)
   }
 }
 
