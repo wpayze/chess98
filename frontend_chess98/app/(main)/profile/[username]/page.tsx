@@ -394,7 +394,7 @@ export default function ProfilePage() {
         {/* Tabs for Games, Friends, Achievements */}
        {/* Tabs for Games, Friends, Achievements, and Solved Puzzles */}
        <Tabs defaultValue="games" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-6">
+          <TabsList className="grid grid-cols-2 mb-6">
             <TabsTrigger value="games" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               <span>Recent Games</span>
@@ -403,14 +403,14 @@ export default function ProfilePage() {
               <Lightbulb className="h-4 w-4" />
               <span>Solved Puzzles</span>
             </TabsTrigger>
-            <TabsTrigger value="friends" className="flex items-center gap-2">
+            {/* <TabsTrigger value="friends" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span>Friends</span>
             </TabsTrigger>
             <TabsTrigger value="achievements" className="flex items-center gap-2">
               <Award className="h-4 w-4" />
               <span>Achievements</span>
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           {/* Recent Games Tab */}
@@ -423,15 +423,12 @@ export default function ProfilePage() {
             <SolvedPuzzlesTab username={username} />
           </TabsContent>
 
-          {/* Friends Tab */}
-          <TabsContent value="friends">
+          {/* <TabsContent value="friends">
             <FriendsTab username={username} friends={friends} followingCount={0} followersCount={0} />
           </TabsContent>
-
-          {/* Achievements Tab */}
           <TabsContent value="achievements">
             <AchievementsTab achievements={[]} wins={profile.wins} losses={profile.losses} draws={profile.draws} />
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
       </div>
     </div>
