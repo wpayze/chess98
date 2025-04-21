@@ -1,14 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
 
-class PuzzleSolveResult(BaseModel):
-    success: bool
-    rating_updated: bool
-    rating_delta: int
-    new_rating: float
-    next_puzzle_id: Optional[str]
-
-
 class PuzzleRefreshResult(BaseModel):
     new_puzzle_id: str
 

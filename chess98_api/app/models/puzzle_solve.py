@@ -1,14 +1,15 @@
 import uuid
 from datetime import datetime, timezone
+import enum
 
 from sqlalchemy import (
     Column,
     DateTime,
-    Boolean,
     Float,
     ForeignKey,
-    UniqueConstraint,
-    String
+    String,
+    Boolean,
+    Enum as SAEnum
 )
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -16,6 +17,11 @@ from sqlalchemy.orm import relationship
 
 from app.database.base import Base
 
+
+class PuzzleSolveStatus(enum.Enum):
+    SOLVED = "solved"
+    FAILED = "failed"
+    SKIPPED = "skipped"
 
 class PuzzleSolve(Base):
     __tablename__ = "puzzle_solves"
@@ -29,7 +35,10 @@ class PuzzleSolve(Base):
     puzzle_id = Column(String, ForeignKey("puzzles.id"), nullable=False)
 
     solved_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), nullable=False)
-    success = Column(Boolean, default=True, nullable=False)
+
+    success = Column(Boolean, default=True, nullable=False)  # sera borrado en el futuro
+    status = Column(SAEnum(PuzzleSolveStatus, name="puzzle_solve_status"), nullable=False)
+
     rating_before = Column(Float, nullable=True)
     rating_after = Column(Float, nullable=True)
     rating_delta = Column(Float, nullable=True)

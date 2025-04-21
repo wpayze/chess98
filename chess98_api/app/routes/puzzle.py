@@ -4,11 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.connection import get_db
 from app.controllers.puzzle import PuzzleController
-from app.schemas.puzzle import PuzzleSolveResult, PuzzleRefreshResult, PuzzleOut
-from app.schemas.puzzle_solve import PaginatedPuzzleSolves, PuzzleSolveStatsResponse
-
-#test
-from typing import List
+from app.schemas.puzzle import PuzzleRefreshResult, PuzzleOut
+from app.schemas.puzzle_solve import PaginatedPuzzleSolves, PuzzleSolveStatsResponse, PuzzleSolveResult
+from app.models.puzzle_solve import PuzzleSolveStatus
 
 router = APIRouter(prefix="/puzzles", tags=["puzzles"])
 
@@ -26,13 +24,14 @@ async def get_puzzle(
 async def solve_puzzle(
     puzzle_id: str,
     user_id: UUID = Body(..., embed=True),
-    success: bool = Body(..., embed=True),
+    status: PuzzleSolveStatus = Body(..., embed=True),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Marca un puzzle como resuelto (o fallado), actualiza el rating y asigna el siguiente puzzle.
+    Marca un puzzle como resuelto, fallado o saltado.
+    Actualiza el rating (solo si es SOLVED o FAILED) y asigna el siguiente puzzle.
     """
-    return await PuzzleController.solve_and_get_next(user_id, puzzle_id, success, db)
+    return await PuzzleController.solve_and_get_next(user_id, puzzle_id, status, db)
 
 
 @router.post("/refresh", response_model=PuzzleRefreshResult)
@@ -67,16 +66,3 @@ async def get_stats_for_user(
     Devuelve estadísticas de solves del usuario.
     """
     return await PuzzleController.get_stats_by_username(username, db)
-
-#experimental - testing
-@router.get("/experimental/by-rating", response_model=List[PuzzleOut])
-async def get_experimental_puzzles_by_rating(
-    rating: float = Query(..., description="User's current puzzle rating"),
-    calls: int = Query(1, description="Number of times to call the experimental fetch"),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Experimental: Devuelve una lista de puzzles aleatorios en el rango del rating dado.
-    Permite múltiples llamadas para analizar repetición o rendimiento.
-    """
-    return await PuzzleController.get_multiple_experimental_by_rating(rating, calls, db)
