@@ -27,7 +27,6 @@ export default function UserPuzzlesPage() {
     const [totalPages, setTotalPages] = useState(1)
     const [onlyRated, setOnlyRated] = useState(true)
 
-    // Load mock data
     useEffect(() => {
         const fetchPuzzles = async () => {
             setIsLoading(true);
@@ -35,18 +34,12 @@ export default function UserPuzzlesPage() {
                 const userSolves = await puzzleService.getPuzzleSolvesByUsername(
                     username, onlyRated, currentPage, 10);
 
-                const userStats = await puzzleService.getPuzzleStatsByUsername(
-                    username);
-
-                console.log({ userSolves, userStats })
-
-                setPuzzleStats(userStats)
                 setUserSolves(userSolves)
                 setTotalPages(userSolves.total_pages)
                 setCurrentPage(userSolves.page)
 
             } catch (error) {
-                console.error("Error fetching profile:", error);
+                console.error("Error fetching puzzles:", error);
             } finally {
                 setIsLoading(false);
             }
@@ -54,6 +47,19 @@ export default function UserPuzzlesPage() {
 
         fetchPuzzles();
     }, [username, onlyRated, currentPage]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const userStats = await puzzleService.getPuzzleStatsByUsername(
+                    username);
+                setPuzzleStats(userStats)
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+            } 
+        };
+        fetchStats();
+    }, []);
 
     const { data: currentPuzzles } = userSolves || {}
 

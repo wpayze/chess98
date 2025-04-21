@@ -42,7 +42,7 @@ class PuzzleService extends ApiService {
     pageSize = 10
   ): Promise<PuzzleSolveListResponse> {
     const endpoint = replacePathParams(ENDPOINTS.GET_PUZZLE_SOLVES_BY_USERNAME, { username });
-    const url = `${endpoint}?onlyRated=${onlyRated}&page=${page}&page_size=${pageSize}`;
+    const url = `${endpoint}?only_rated=${onlyRated}&page=${page}&page_size=${pageSize}`;
     return this.fetchPublic<PuzzleSolveListResponse>(url);
   }
 

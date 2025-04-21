@@ -23,6 +23,8 @@ import {
 import { useAuthStore } from "@/store/auth-store"
 import { Chess98Board, Chess98BoardHandle } from "@/components/chess98-board"
 import { useParams, useRouter } from "next/navigation"
+import toast from "react-hot-toast"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function ExercisesPage() {
   const params = useParams()
@@ -44,6 +46,8 @@ export default function ExercisesPage() {
   const [isPuzzleComplete, setIsPuzzleComplete] = useState(false)
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white")
   const [ratingChange, setRatingChange] = useState(0)
+
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     if (hasLoadedRef.current) return
@@ -138,7 +142,11 @@ export default function ExercisesPage() {
         setRatingChange(result.rating_delta);
         setTimeout(() => {
           navigate("/exercises");
-        }, 1000); // Navigate after 2 seconds
+        }, 2000); // Navigate after 2 seconds
+
+        if (isMobile)
+          toast.success("Correct move! Puzzle solved!");
+
         console.log("✅ Puzzle resuelto con éxito", result);
       }
     } else {
@@ -152,6 +160,9 @@ export default function ExercisesPage() {
       });
 
       setRatingChange(result.rating_delta);
+      if (isMobile)
+        toast.error("Incorrect move! Puzzle failed!");
+
       console.log("❌ Puzzle fallado");
     }
   };
@@ -205,17 +216,18 @@ export default function ExercisesPage() {
                   <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                     {userRating}
                   </div>
-                  {isPuzzleComplete && (
-                    <div className={`text-sm mt-1 ${ratingChange >= 0 ? "text-green-400" : "text-red-400"}`}>
-                      {ratingChange > 0 ? "+" : ""}
-                      {ratingChange === 0 ? "No change" : ratingChange}
-                    </div>
-                  )}
+                  <div className={`text-sm mt-1 min-h-[1.25rem] ${ratingChange >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    {isPuzzleComplete ? (
+                      ratingChange === 0 ? "No change" : `${ratingChange > 0 ? "+" : ""}${ratingChange}`
+                    ) : (
+                      <span className="invisible">placeholder</span>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {moveFeedback && (
+            {(moveFeedback && !isMobile) && (
               <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
                 <CardContent className="p-4">
                   {moveFeedback === "correct" && (
@@ -235,7 +247,8 @@ export default function ExercisesPage() {
               </Card>
             )}
 
-            {moveFeedback === "wrong" && (
+            {/* Make a bottom bar */}
+            {(moveFeedback === "wrong" && !isMobile) && (
               <>
                 <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
                   <CardContent className="p-4">
@@ -273,14 +286,18 @@ export default function ExercisesPage() {
               // </Card>
             )} */}
 
-            <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50 lg:block hidden">
-              <CardContent className="p-4">
-                {/* <p className="text-sm text-slate-300 mb-3">Too hard?</p> */}
-                <Button onClick={() => skipPuzzle()} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800">
-                  Skip Puzzle
-                </Button>
-              </CardContent>
-            </Card>
+            {
+              !isPuzzleComplete && (
+                <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50 lg:block hidden">
+                  <CardContent className="p-4">
+                    {/* <p className="text-sm text-slate-300 mb-3">Too hard?</p> */}
+                    <Button onClick={() => skipPuzzle()} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800">
+                      Skip Puzzle
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            }
 
             {/* <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
               <CardContent className="p-4">
@@ -319,25 +336,27 @@ export default function ExercisesPage() {
                       </div>
                     )}
                   </div>
-                  <div className={`mt-4 p-4 ${playerColor === "white" ? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 flex items-center justify-center">
-                          {playerColor === "white" ? (
-                            <div className="w-8 h-8 rounded-full bg-white"></div>
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-black border border-slate-600"></div>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className={`text-lg font-bold ${playerColor === "white" ? "text-white" : "text-black"}`}>Your turn</h3>
-                          <p className={`text-sm ${playerColor === "white" ? "text-slate-300" : "text-black"}`}>
-                            Find the best move for {playerColor === "white" ? "white" : "black"}.
-                          </p>
-                        </div>
-                      </div>
+                  {
+                    !isPuzzleComplete && (
+                      <div className={`mt-4 p-4 ${playerColor === "white" ? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 flex items-center justify-center">
+                              {playerColor === "white" ? (
+                                <div className="w-8 h-8 rounded-full bg-white"></div>
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-black border border-slate-600"></div>
+                              )}
+                            </div>
+                            <div>
+                              <h3 className={`text-lg font-bold ${playerColor === "white" ? "text-white" : "text-black"}`}>Your turn</h3>
+                              <p className={`text-sm ${playerColor === "white" ? "text-slate-300" : "text-black"}`}>
+                                Find the best move for {playerColor === "white" ? "white" : "black"}.
+                              </p>
+                            </div>
+                          </div>
 
-                      {/* <div className="flex gap-2">
+                          {/* <div className="flex gap-2">
                         <Button variant="outline" className="border-slate-700 bg-slate-800/50 hover:bg-slate-700">
                           <HelpCircle className="h-4 w-4 mr-2" />
                           GET A HINT
@@ -347,18 +366,53 @@ export default function ExercisesPage() {
                           SEE SOLUTION
                         </Button>
                       </div> */}
-                    </div>
-                  </div>
+                        </div>
+                      </div>)
+                  }
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="mt-4 lg:hidden">
-            <Button onClick={() => skipPuzzle()} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800">
-              Skip Puzzle
-            </Button>
-          </div>
+          {(moveFeedback === "wrong" && isMobile) && (
+            <>
+              <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-slate-300 mb-3">Want to try this puzzle again?</p>
+                  <Button
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
+                    onClick={() => navigate(`/exercises/${puzzle?.id}`)}
+                  >
+                    RETRY
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+                <CardContent className="p-4">
+                  <Button
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800"
+                    onClick={() => navigate("/exercises")}
+                  >
+                    <SkipForward className="h-4 w-4 mr-2" />
+                    Go to Next Exercise
+                  </Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {
+            !isPuzzleComplete && (
+              <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50 lg:hidden">
+                <CardContent className="p-4">
+                  {/* <p className="text-sm text-slate-300 mb-3">Too hard?</p> */}
+                  <Button onClick={() => skipPuzzle()} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800">
+                    Skip Puzzle
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          }
         </div>
       </div>
     </div>
