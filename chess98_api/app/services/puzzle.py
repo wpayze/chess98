@@ -42,7 +42,7 @@ async def get_random_puzzle_by_rating_fast(rating: float, db: AsyncSession) -> O
     # Contamos cuántos puzzles hay en el rango
     count_query = select(func.count()).select_from(
         select(Puzzle)
-        .where(Puzzle.rating.between(rating - 40, rating + 40))
+        .where(Puzzle.rating.between(rating - 5, rating + 5))
         .subquery()
     )
 
@@ -56,7 +56,7 @@ async def get_random_puzzle_by_rating_fast(rating: float, db: AsyncSession) -> O
     # Traemos un puzzle aleatorio por offset
     result = await db.execute(
         select(Puzzle)
-        .where(Puzzle.rating.between(rating - 40, rating + 40))
+        .where(Puzzle.rating.between(rating - 5, rating + 5))
         .offset(offset)
         .limit(1)
     )
