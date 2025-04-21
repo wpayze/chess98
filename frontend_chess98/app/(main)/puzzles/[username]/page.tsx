@@ -11,7 +11,7 @@ import { MiniChessboard } from "@/components/mini-chessboard"
 import { formatDate } from "@/utils/timeFormats"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { PuzzleSolveListResponse, PuzzleSolveStatsResponse } from "@/models/puzzle"
+import { PuzzleSolveListResponse, PuzzleSolveStatsResponse, PuzzleSolveStatus } from "@/models/puzzle"
 import { puzzleService } from "@/services/puzzle-service"
 
 export default function UserPuzzlesPage() {
@@ -157,7 +157,11 @@ export default function UserPuzzlesPage() {
                                         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors cursor-pointer">
                                             <div className="flex items-center gap-3">
                                                 <div
-                                                    className={`w-2 h-full min-h-[40px] rounded-l-lg ${solve.success ? "bg-green-500" : "bg-red-500"
+                                                    className={`w-2 h-full min-h-[40px] rounded-l-lg ${solve.status === PuzzleSolveStatus.SOLVED
+                                                        ? "bg-green-500"
+                                                        : solve.status === PuzzleSolveStatus.FAILED
+                                                            ? "bg-red-500"
+                                                            : "bg-gray-400"
                                                         }`}
                                                 ></div>
 
@@ -172,11 +176,20 @@ export default function UserPuzzlesPage() {
                                                         </Badge>
                                                         <Badge
                                                             className={`
-                                                                ${solve.success ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}
-                                                                hidden md:inline-flex
-                                                            `}
+                                                                    ${solve.status === PuzzleSolveStatus.SOLVED
+                                                                    ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                                                    : solve.status === PuzzleSolveStatus.FAILED
+                                                                        ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                                                        : "bg-gray-400/20 text-gray-400 border-gray-400/30"
+                                                                }
+                                                                    hidden md:inline-flex
+                                                                `}
                                                         >
-                                                            {solve.success ? "Solved" : "Failed"}
+                                                            {solve.status === PuzzleSolveStatus.SOLVED
+                                                                ? "Solved"
+                                                                : solve.status === PuzzleSolveStatus.FAILED
+                                                                    ? "Failed"
+                                                                    : "Skipped"}
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm mt-1">

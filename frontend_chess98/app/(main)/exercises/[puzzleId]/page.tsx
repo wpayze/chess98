@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { profileService } from "@/services/profile-service"
 import { puzzleService } from "@/services/puzzle-service"
 
-import type { Puzzle } from "@/models/puzzle"
+import { PuzzleSolveStatus, type Puzzle } from "@/models/puzzle"
 import type { Profile } from "@/models/profile"
 
 import { Button } from "@/components/ui/button"
@@ -96,6 +96,17 @@ export default function ExercisesPage() {
     loadPuzzle()
   }, [user])
 
+  const skipPuzzle = async () => {
+    if (!puzzle || !profile) return;
+    await puzzleService.solvePuzzle(puzzle.id, {
+      user_id: profile.user_id,
+      status: PuzzleSolveStatus.SKIPPED,
+    });
+    setTimeout(() => {
+      navigate("/exercises");
+    }, 1000);
+  }
+
   const handlePlayerMove = async (move: { from: string; to: string, uci: string }) => {
     if (!move || !puzzle || !profile) return;
 
@@ -121,7 +132,7 @@ export default function ExercisesPage() {
 
         const result = await puzzleService.solvePuzzle(puzzle.id, {
           user_id: profile.user_id,
-          success: true,
+          status: PuzzleSolveStatus.SOLVED,
         });
 
         setRatingChange(result.rating_delta);
@@ -137,7 +148,7 @@ export default function ExercisesPage() {
 
       const result = await puzzleService.solvePuzzle(puzzle.id, {
         user_id: profile.user_id,
-        success: false,
+        status: PuzzleSolveStatus.FAILED,
       });
 
       setRatingChange(result.rating_delta);
@@ -262,18 +273,14 @@ export default function ExercisesPage() {
               // </Card>
             )} */}
 
-
-
-
-
-            {/* <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+            <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50 lg:block hidden">
               <CardContent className="p-4">
-                <p className="text-sm text-slate-300 mb-3">To get personalized exercises:</p>
-                <Button className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800">
-                  REGISTER
+                {/* <p className="text-sm text-slate-300 mb-3">Too hard?</p> */}
+                <Button onClick={() => skipPuzzle()} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800">
+                  Skip Puzzle
                 </Button>
               </CardContent>
-            </Card> */}
+            </Card>
 
             {/* <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
               <CardContent className="p-4">
@@ -345,6 +352,12 @@ export default function ExercisesPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="mt-4 lg:hidden">
+            <Button onClick={() => skipPuzzle()} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800">
+              Skip Puzzle
+            </Button>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { Puzzle, PuzzleRefreshResult, PuzzleSolveListResponse, PuzzleSolveResult, PuzzleSolveStatsResponse } from "@/models/puzzle";
+import { Puzzle, PuzzleRefreshResult, PuzzleSolveListResponse, PuzzleSolveResult, PuzzleSolveStatsResponse, PuzzleSolveStatus } from "@/models/puzzle";
 import { ApiService } from "./api-service"
 import { ENDPOINTS, replacePathParams } from "@/constants/endpoints"
 
@@ -14,7 +14,7 @@ class PuzzleService extends ApiService {
   /**
    * Solve puzzle and get next
    */
-  async solvePuzzle(puzzleId: string, data: { user_id: string; success: boolean }): Promise<PuzzleSolveResult> {
+  async solvePuzzle(puzzleId: string, data: { user_id: string; status: PuzzleSolveStatus }): Promise<PuzzleSolveResult> {
     const endpoint = replacePathParams(ENDPOINTS.SOLVE_PUZZLE, { puzzle_id: puzzleId })
     return this.fetchPublic<PuzzleSolveResult>(endpoint, {
       method: "POST",

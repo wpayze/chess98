@@ -10,7 +10,15 @@ export interface Puzzle {
   game_url?: string
 }
 
+export enum PuzzleSolveStatus {
+  SOLVED = 'solved',
+  FAILED = 'failed',
+  SKIPPED = 'skipped',
+}
+
+
 export interface PuzzleSolveResult {
+  status: PuzzleSolveStatus
   success: boolean
   rating_delta: number
   new_rating: number
@@ -26,6 +34,7 @@ export interface PuzzleSolveOut {
   id: string;
   solved_at: string;
   success: boolean;
+  status: PuzzleSolveStatus
   rating_before?: number;
   rating_after?: number;
   rating_delta?: number;
