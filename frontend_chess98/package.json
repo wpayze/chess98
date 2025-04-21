@@ -41,7 +41,6 @@
     "react": "^19",
     "react-chessboard": "^4.7.2",
     "react-dom": "^19",
-    "react-hot-toast": "^2.5.2",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.3"

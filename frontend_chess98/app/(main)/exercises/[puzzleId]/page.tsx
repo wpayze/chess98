@@ -23,7 +23,6 @@ import {
 import { useAuthStore } from "@/store/auth-store"
 import { Chess98Board, Chess98BoardHandle } from "@/components/chess98-board"
 import { useParams, useRouter } from "next/navigation"
-import toast from "react-hot-toast"
 import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function ExercisesPage() {
@@ -144,9 +143,6 @@ export default function ExercisesPage() {
           navigate("/exercises");
         }, 2000); // Navigate after 2 seconds
 
-        if (isMobile)
-          toast.success("Correct move! Puzzle solved!");
-
         console.log("✅ Puzzle resuelto con éxito", result);
       }
     } else {
@@ -160,9 +156,6 @@ export default function ExercisesPage() {
       });
 
       setRatingChange(result.rating_delta);
-      if (isMobile)
-        toast.error("Incorrect move! Puzzle failed!");
-
       console.log("❌ Puzzle fallado");
     }
   };
@@ -226,26 +219,6 @@ export default function ExercisesPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {(moveFeedback && !isMobile) && (
-              <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
-                <CardContent className="p-4">
-                  {moveFeedback === "correct" && (
-                    <div className="flex items-center text-green-400">
-                      <Check className="h-5 w-5 mr-2" />
-                      <span className="font-medium">Correct move! Well done.</span>
-                    </div>
-                  )}
-
-                  {moveFeedback === "wrong" && (
-                    <div className="flex items-center text-red-400">
-                      <X className="h-5 w-5 mr-2" />
-                      <span className="font-medium">Incorrect move.</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
             {/* Make a bottom bar */}
             {(moveFeedback === "wrong" && !isMobile) && (
@@ -336,39 +309,46 @@ export default function ExercisesPage() {
                       </div>
                     )}
                   </div>
-                  {
-                    !isPuzzleComplete && (
-                      <div className={`mt-4 p-4 ${playerColor === "white" ? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 flex items-center justify-center">
-                              {playerColor === "white" ? (
-                                <div className="w-8 h-8 rounded-full bg-white"></div>
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-black border border-slate-600"></div>
-                              )}
-                            </div>
-                            <div>
-                              <h3 className={`text-lg font-bold ${playerColor === "white" ? "text-white" : "text-black"}`}>Your turn</h3>
-                              <p className={`text-sm ${playerColor === "white" ? "text-slate-300" : "text-black"}`}>
-                                Find the best move for {playerColor === "white" ? "white" : "black"}.
-                              </p>
-                            </div>
+                  <div className={`mt-4 p-4 ${playerColor === "white" ? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
+                    {!isPuzzleComplete ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 flex items-center justify-center">
+                            {playerColor === "white" ? (
+                              <div className="w-8 h-8 rounded-full bg-white"></div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-black border border-slate-600"></div>
+                            )}
                           </div>
-
-                          {/* <div className="flex gap-2">
-                        <Button variant="outline" className="border-slate-700 bg-slate-800/50 hover:bg-slate-700">
-                          <HelpCircle className="h-4 w-4 mr-2" />
-                          GET A HINT
-                        </Button>
-                        <Button variant="outline" className="border-slate-700 bg-slate-800/50 hover:bg-slate-700">
-                          <Eye className="h-4 w-4 mr-2" />
-                          SEE SOLUTION
-                        </Button>
-                      </div> */}
+                          <div>
+                            <h3 className={`text-lg font-bold ${playerColor === "white" ? "text-white" : "text-black"}`}>Your turn</h3>
+                            <p className={`text-sm ${playerColor === "white" ? "text-slate-300" : "text-black"}`}>
+                              Find the best move for {playerColor === "white" ? "white" : "black"}.
+                            </p>
+                          </div>
                         </div>
-                      </div>)
-                  }
+                      </div>
+                    ) : moveFeedback ? (
+                      <div>
+                        {moveFeedback === "correct" && (
+                          <div className="flex items-center text-green-400">
+                            <Check className="h-5 w-5 mr-2" />
+                            <span className="font-medium">Correct move! Well done.</span>
+                          </div>
+                        )}
+
+                        {moveFeedback === "wrong" && (
+                          <div className="flex items-center text-red-400">
+                            <X className="h-5 w-5 mr-2" />
+                            <span className="font-medium">Incorrect move.</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Para que el espacio no colapse si no hay feedback
+                      <div className="h-5" />
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

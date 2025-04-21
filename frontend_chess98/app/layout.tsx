@@ -1,5 +1,4 @@
 import type React from "react";
-import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 export const metadata = {
@@ -16,7 +15,6 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="min-h-screen bg-slate-950 text-slate-50">
         {children}
-        <Toaster position="top-right" />
       </body>
     </html>
   );
