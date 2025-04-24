@@ -6,6 +6,8 @@ from app.models.profile import Profile
 from app.schemas.user import UserCreate, UserOut
 from app.utils.security import get_password_hash, verify_password
 from app.utils.jwt import create_access_token
+from sqlalchemy.orm import joinedload
+from app.schemas.settings import SettingsOut
 
 async def register_user(user_data: UserCreate, db: AsyncSession) -> User:
     result = await db.execute(select(User).filter(User.email == user_data.email))
@@ -34,16 +36,27 @@ async def register_user(user_data: UserCreate, db: AsyncSession) -> User:
     return new_user
 
 async def login_user(email: str, password: str, db: AsyncSession) -> dict:
-    result = await db.execute(select(User).filter(User.email == email))
+    result = await db.execute(
+        select(User)
+        .options(joinedload(User.settings))
+        .filter(User.email == email)
+    )
     user = result.scalars().first()
+
     if not user or not verify_password(password, user.password_hash):
         raise Exception("Invalid credentials")
-    
+
+    # Crear token
     token_data = {"sub": user.email, "user_id": str(user.id)}
     access_token = create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
-    
+
+    # Serializar user y settings
+    user_data = UserOut.model_validate(user)
+    settings_data = SettingsOut.model_validate(user.settings) if user.settings else None
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserOut.model_validate(user)
+        "user": user_data,
+        "settings": settings_data,
     }

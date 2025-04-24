@@ -1,6 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, Integer
+from sqlalchemy import select, desc, func, Integer
+from sqlalchemy.orm import joinedload
 from app.models.user import User
+from app.models.profile import Profile
+from typing import Dict, List
+from uuid import UUID
 
 async def get_user_by_username(username: str, db: AsyncSession) -> User | None:
     result = await db.execute(
@@ -8,13 +12,11 @@ async def get_user_by_username(username: str, db: AsyncSession) -> User | None:
     )
     return result.scalar_one_or_none()
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func
-from sqlalchemy.orm import joinedload
-from app.models.user import User
-from app.models.profile import Profile
-from typing import Dict, List
-
+async def get_user_by_id(user_id: UUID, db: AsyncSession) -> User | None:
+    result = await db.execute(
+        select(User).where(User.id == user_id)
+    )
+    return result.scalar_one_or_none()
 
 async def get_top_users_by_rating(db: AsyncSession) -> Dict[str, List[dict]]:
     time_controls = ["bullet", "blitz", "rapid", "puzzle"]

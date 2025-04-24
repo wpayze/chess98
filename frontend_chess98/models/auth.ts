@@ -1,3 +1,5 @@
+import { Settings } from "./setings"
+
 export interface LoginRequest {
   email: string
   password: string
@@ -8,6 +10,7 @@ export interface LoginResponse {
   token_type: string
   user: User,
   detail: string
+  settings: Settings | null;
 }
 
 export interface RegisterRequest {

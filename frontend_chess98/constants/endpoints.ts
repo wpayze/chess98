@@ -6,7 +6,7 @@ export enum ENDPOINTS {
   // User endpoints
   USER_BY_USERNAME = "/users/username/:username",
   TOP_PLAYERS = "/users/top",
-
+  
   // Game endpoints
   GAME_BY_ID = "/games/:id",
   USER_GAMES = "/games/user/:username",
@@ -21,6 +21,9 @@ export enum ENDPOINTS {
   REFRESH_PUZZLE = "/puzzles/refresh",
   GET_PUZZLE_SOLVES_BY_USERNAME = "/puzzles/user/:username",
   GET_PUZZLE_STATS_BY_USERNAME = "/puzzles/:username/stats",
+
+  //Settings
+  SETTINGS_BY_USER_ID = "/settings/{user_id}",
 }
 
 /**

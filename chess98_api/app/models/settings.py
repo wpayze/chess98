@@ -11,8 +11,8 @@ class Settings(Base):
     user_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"), unique=True, nullable=False)
     
     theme = Column(String, default="default", nullable=False)
-    board_theme = Column(String, default="wood", nullable=False)
-    piece_set = Column(String, default="standard", nullable=False)
+    board_theme = Column(String, default="default", nullable=False)
+    piece_set = Column(String, default="default", nullable=False)
     
     animation_speed = Column(Integer, default=50, nullable=False)
     move_confirmation = Column(Boolean, default=True, nullable=False)

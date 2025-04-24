@@ -49,5 +49,30 @@ export class ApiService {
 
     return response.json()
   }
+
+  /**
+ * PATCH público (sin autenticación)
+ */
+  protected async patchPublic<T>(endpoint: string, data: any, options: RequestInit = {}): Promise<T> {
+    return this.fetchPublic<T>(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * PATCH autenticado (requiere JWT)
+   */
+  protected async patchPrivate<T>(endpoint: string, data: any, token?: string, options: RequestInit = {}): Promise<T> {
+    const jwt = token || localStorage.getItem("access_token"); // fallback
+    if (!jwt) throw new Error("No token found");
+
+    return this.fetchWithAuth<T>(endpoint, jwt, {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
 }
 

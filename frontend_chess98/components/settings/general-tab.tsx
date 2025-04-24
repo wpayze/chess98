@@ -1,18 +1,43 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import dynamic from "next/dynamic"
+import { useAuthStore } from "@/store/auth-store"
+import { useSettingsStore } from "@/store/settings-store"
+import { Settings } from "@/models/setings"
+import { getBoardColors } from "@/utils/boardTheme"
+import { getCustomPieces } from "@/utils/pieces"
 
-// Dynamically import chess.js and react-chessboard with no SSR
-const ChessboardComponent = dynamic(() => import("react-chessboard").then((mod) => mod.Chessboard), { ssr: false })
+const ChessboardComponent = dynamic(() => import("react-chessboard").then(mod => mod.Chessboard), { ssr: false })
 
 export function GeneralTab() {
-  const [language, setLanguage] = useState("es")
-  const [boardStyle, setBoardStyle] = useState("wood")
-  const [pieceStyle, setPieceStyle] = useState("standard")
+  const { user } = useAuthStore()
+  const { settings, fetchSettings } = useSettingsStore()
+
+  // Estado temporal para los selects
+  const [localBoardTheme, setLocalBoardTheme] = useState("default")
+  const [localPieceSet, setLocalPieceSet] = useState("default")
+
+  // Cargar settings al montar
+  useEffect(() => {
+    if (user?.id) {
+      fetchSettings(user.id)
+    }
+  }, [user])
+
+  // Inicializar estados locales una vez que settings esté listo
+  useEffect(() => {
+    if (settings) {
+      setLocalBoardTheme(settings.board_theme || "default")
+      setLocalPieceSet(settings.piece_set || "default")
+    }
+  }, [settings])
+
+  const boardColors = getBoardColors(localBoardTheme)
+  const pieces = getCustomPieces(localPieceSet)
 
   return (
     <Card className="border-slate-800 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm">
@@ -25,7 +50,7 @@ export function GeneralTab() {
           <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
-              <Select value={language} onValueChange={setLanguage}>
+              <Select value="es" onValueChange={() => {}}>
                 <SelectTrigger id="language" className="bg-slate-800/50 border-slate-700">
                   <SelectValue placeholder="Select a language" />
                 </SelectTrigger>
@@ -38,7 +63,10 @@ export function GeneralTab() {
 
             <div className="space-y-2">
               <Label htmlFor="board-style">Board Style</Label>
-              <Select value={boardStyle} onValueChange={setBoardStyle}>
+              <Select
+                value={localBoardTheme}
+                onValueChange={(value) => setLocalBoardTheme(value)}
+              >
                 <SelectTrigger id="board-style" className="bg-slate-800/50 border-slate-700">
                   <SelectValue placeholder="Select a board style" />
                 </SelectTrigger>
@@ -48,28 +76,37 @@ export function GeneralTab() {
                   <SelectItem value="blue">Ocean Blue</SelectItem>
                   <SelectItem value="marble">Marble</SelectItem>
                   <SelectItem value="simple">Simple</SelectItem>
+                  <SelectItem value="default">Default</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="piece-style">Piece Style</Label>
-              <Select value={pieceStyle} onValueChange={setPieceStyle}>
+              <Select
+                value={localPieceSet}
+                onValueChange={(value) => setLocalPieceSet(value)}
+              >
                 <SelectTrigger id="piece-style" className="bg-slate-800/50 border-slate-700">
                   <SelectValue placeholder="Select a piece style" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="standard">Standard</SelectItem>
-                  <SelectItem value="neo">Neo</SelectItem>
+                  <SelectItem value="default">Default (CBurnett)</SelectItem>
                   <SelectItem value="alpha">Alpha</SelectItem>
+                  <SelectItem value="cardinal">Cardinal</SelectItem>
                   <SelectItem value="cburnett">CBurnett</SelectItem>
-                  <SelectItem value="chess24">Chess24</SelectItem>
+                  <SelectItem value="fresca">Fresca</SelectItem>
+                  <SelectItem value="icpieces">IC Pieces</SelectItem>
+                  <SelectItem value="maestro">Maestro</SelectItem>
+                  <SelectItem value="merida">Merida</SelectItem>
+                  <SelectItem value="mpchess">MP Chess</SelectItem>
+                  <SelectItem value="pixel">Pixel</SelectItem>
+                  <SelectItem value="tatiana">Tatiana</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Chessboard Preview */}
           <div className="flex flex-col items-center">
             <Label className="mb-2">Board Preview</Label>
             <div className="w-full max-w-[300px] aspect-square">
@@ -81,8 +118,9 @@ export function GeneralTab() {
                   borderRadius: "0.5rem",
                   boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
                 }}
-                customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
-                customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
+                customDarkSquareStyle={{ backgroundColor: boardColors.dark }}
+                customLightSquareStyle={{ backgroundColor: boardColors.light }}
+                customPieces={pieces}
                 arePiecesDraggable={false}
               />
             </div>
