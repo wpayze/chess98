@@ -4,6 +4,9 @@ import { Chessboard } from "react-chessboard";
 import { Square } from "react-chessboard/dist/chessboard/types";
 import { playSound } from "@/services/sounds-service";
 import { SOUNDS } from "@/constants/sounds";
+import { useSettingsStore } from "@/store/settings-store";
+import { getBoardColors } from "@/utils/boardTheme";
+import { getCustomPieces } from "@/utils/pieces";
 
 function handleMoveSound(game: any, move: any) {
     if (!move) return;
@@ -63,6 +66,7 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         const gameRef = useRef(new Chess(initialFen || "start"));
         const [fen, setFen] = useState<string>(initialFen || gameRef.current.fen());
 
+        const { settings } = useSettingsStore()
 
         useEffect(() => {
             const newGame = new Chess(initialFen);
@@ -258,6 +262,9 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
             applyPuzzleMove
         }));
 
+        const boardColors = getBoardColors(settings?.board_theme || "default")
+        const pieces = getCustomPieces(settings?.piece_set || "default")
+
         return (
             <Chessboard
                 id="Chess98Board"
@@ -268,8 +275,9 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
                 arePiecesDraggable={true}
                 customSquareStyles={getSquareStyles()}
                 customBoardStyle={{ borderRadius: "0.5rem", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)" }}
-                customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
-                customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
+                customDarkSquareStyle={{ backgroundColor: boardColors.dark }}
+                customLightSquareStyle={{ backgroundColor: boardColors.light }}
+                customPieces={pieces}
                 promotionDialogVariant={"modal"}
                 arePremovesAllowed={true}
                 clearPremovesOnRightClick={true}

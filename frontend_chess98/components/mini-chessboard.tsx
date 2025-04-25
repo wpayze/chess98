@@ -1,5 +1,8 @@
 "use client"
 
+import { useSettingsStore } from "@/store/settings-store"
+import { getBoardColors } from "@/utils/boardTheme"
+import { getCustomPieces } from "@/utils/pieces"
 import dynamic from "next/dynamic"
 import { useState, useEffect } from "react"
 
@@ -14,6 +17,9 @@ interface MiniChessboardProps {
 
 export function MiniChessboard({ fen, className = "", size = 120 }: MiniChessboardProps) {
   const [mounted, setMounted] = useState(false)
+  const { settings } = useSettingsStore()
+  const boardColors = getBoardColors(settings?.board_theme || "default")
+  const pieces = getCustomPieces(settings?.piece_set || "default")
 
   useEffect(() => {
     setMounted(true)
@@ -23,6 +29,7 @@ export function MiniChessboard({ fen, className = "", size = 120 }: MiniChessboa
     // Return a placeholder with the right dimensions until the component mounts
     return <div className={`bg-slate-800 rounded-md ${className}`} style={{ width: size, height: size }} />
   }
+  
 
   return (
     <div className={`${className}`} style={{ width: size, height: size }}>
@@ -34,8 +41,9 @@ export function MiniChessboard({ fen, className = "", size = 120 }: MiniChessboa
           borderRadius: "0.375rem",
           overflow: "hidden",
         }}
-        customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
-        customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
+        customDarkSquareStyle={{ backgroundColor: boardColors.dark }}
+        customLightSquareStyle={{ backgroundColor: boardColors.light }}
+        customPieces={pieces}
         boardOrientation="white"
         areArrowsAllowed={false}
         arePiecesDraggable={false}

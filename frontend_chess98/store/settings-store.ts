@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { settingsService } from "@/services/settings-service";
-import { Settings } from "@/models/setings";
+import { Settings, SettingsPatch } from "@/models/setings";
 
 interface SettingsStore {
   settings: Settings | null;
@@ -9,7 +9,7 @@ interface SettingsStore {
   error: string | null;
 
   fetchSettings: (userId: string) => Promise<void>;
-  updateSettings: (userId: string, updates: Settings) => Promise<void>;
+  updateSettings: (userId: string, updates: SettingsPatch) => Promise<void>;
   clearError: () => void;
 }
 
@@ -33,7 +33,7 @@ export const useSettingsStore = create<SettingsStore>()(
         }
       },
 
-      updateSettings: async (userId: string, updates: Settings) => {
+      updateSettings: async (userId: string, updates: SettingsPatch) => {
         try {
           set({ isLoading: true, error: null });
           const updated = await settingsService.updateSettings(userId, updates);

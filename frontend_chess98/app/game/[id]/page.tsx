@@ -33,6 +33,9 @@ import { StockfishService } from "@/services/stockfish-service";
 import { Square } from "react-chessboard/dist/chessboard/types";
 import { SimpleEvaluationBar } from "@/components/simple-evaluation-bar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSettingsStore } from "@/store/settings-store";
+import { getBoardColors } from "@/utils/boardTheme";
+import { getCustomPieces } from "@/utils/pieces";
 
 // Dynamically import chess.js and react-chessboard with no SSR
 const ChessboardComponent = dynamic(
@@ -92,6 +95,10 @@ export default function GameViewPage() {
 
   const isMobile = useIsMobile();
   const chosenDepth = isMobile ? 25 : 30;
+
+  const { settings } = useSettingsStore()
+  const boardColors = getBoardColors(settings?.board_theme || "default")
+  const pieces = getCustomPieces(settings?.piece_set || "default")
 
   useEffect(() => {
     currentMoveIndexRef.current = currentMoveIndex;
@@ -351,7 +358,7 @@ export default function GameViewPage() {
         setGame(gameData);
         setFen(
           gameData.initial_fen ||
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         );
       } catch (error) {
         console.error("Error loading game:", error);
@@ -418,7 +425,7 @@ export default function GameViewPage() {
     if (index === 0) {
       setFen(
         game.initial_fen ||
-          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
       );
       return;
     }
@@ -456,7 +463,7 @@ export default function GameViewPage() {
         goToNext()
       }
     }
-  
+
     window.addEventListener("keydown", handleKeyDown)
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
@@ -642,8 +649,8 @@ export default function GameViewPage() {
       game.result === "white_win"
         ? `${game.white_player.username} won by`
         : game.result === "black_win"
-        ? `${game.black_player.username} won by`
-        : "Game ended in a draw by";
+          ? `${game.black_player.username} won by`
+          : "Game ended in a draw by";
 
     return `${resultText} ${game.termination}`;
   };
@@ -667,11 +674,10 @@ export default function GameViewPage() {
       >
         <div className="flex items-center gap-2">
           <div
-            className={`rounded-full ${
-              isWhite
+            className={`rounded-full ${isWhite
                 ? "w-3 h-3 bg-white"
                 : "w-3 h-3 bg-black"
-            }`}
+              }`}
           ></div>
           <div
             className={`font-medium text-white`}
@@ -685,9 +691,8 @@ export default function GameViewPage() {
           </Badge>
           {ratingChange !== 0 && ratingChange !== null && (
             <span
-              className={`${
-                ratingChange > 0 ? "text-green-400" : "text-red-400"
-              }`}
+              className={`${ratingChange > 0 ? "text-green-400" : "text-red-400"
+                }`}
             >
               {ratingChange > 0 ? "+" : ""}
               {ratingChange}
@@ -795,8 +800,9 @@ export default function GameViewPage() {
                       borderRadius: "0.5rem",
                       boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
                     }}
-                    customDarkSquareStyle={{ backgroundColor: "#4a5568" }}
-                    customLightSquareStyle={{ backgroundColor: "#cbd5e0" }}
+                    customDarkSquareStyle={{ backgroundColor: boardColors.dark }}
+                    customLightSquareStyle={{ backgroundColor: boardColors.light }}
+                    customPieces={pieces}
                     customArrows={bestArrow ? [bestArrow] : []}
                     arePiecesDraggable={true}
                     onPieceDrop={handleOnDrop}
@@ -848,10 +854,10 @@ export default function GameViewPage() {
                     disabled={
                       processedMoves.length === 0 ||
                       currentMoveIndex >=
-                        processedMoves.length * 2 -
-                          (processedMoves[processedMoves.length - 1]?.black
-                            ? 0
-                            : 1)
+                      processedMoves.length * 2 -
+                      (processedMoves[processedMoves.length - 1]?.black
+                        ? 0
+                        : 1)
                     }
                   >
                     <ChevronRight className={arrowIconsSize} />
@@ -865,10 +871,10 @@ export default function GameViewPage() {
                     disabled={
                       processedMoves.length === 0 ||
                       currentMoveIndex >=
-                        processedMoves.length * 2 -
-                          (processedMoves[processedMoves.length - 1]?.black
-                            ? 0
-                            : 1)
+                      processedMoves.length * 2 -
+                      (processedMoves[processedMoves.length - 1]?.black
+                        ? 0
+                        : 1)
                     }
                   >
                     <SkipForward className={arrowIconsSize} />
@@ -952,21 +958,19 @@ export default function GameViewPage() {
                           {move.moveNumber}
                         </div>
                         <div
-                          className={`py-1 px-2 text-center border-t border-slate-700/50 cursor-pointer ${
-                            currentMoveIndex === index * 2 + 1
+                          className={`py-1 px-2 text-center border-t border-slate-700/50 cursor-pointer ${currentMoveIndex === index * 2 + 1
                               ? "bg-indigo-500/20 font-medium"
                               : ""
-                          }`}
+                            }`}
                           onClick={() => goToMove(index * 2 + 1)}
                         >
                           {move.white.notation}
                         </div>
                         <div
-                          className={`py-1 px-2 text-center border-t border-slate-700/50 cursor-pointer ${
-                            move.black && currentMoveIndex === index * 2 + 2
+                          className={`py-1 px-2 text-center border-t border-slate-700/50 cursor-pointer ${move.black && currentMoveIndex === index * 2 + 2
                               ? "bg-indigo-500/20 font-medium"
                               : ""
-                          }`}
+                            }`}
                           onClick={() => move.black && goToMove(index * 2 + 2)}
                         >
                           {move.black ? move.black.notation : ""}

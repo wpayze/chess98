@@ -23,7 +23,7 @@ export enum ENDPOINTS {
   GET_PUZZLE_STATS_BY_USERNAME = "/puzzles/:username/stats",
 
   //Settings
-  SETTINGS_BY_USER_ID = "/settings/{user_id}",
+  SETTINGS_BY_USER_ID = "/settings/:user_id",
 }
 
 /**
