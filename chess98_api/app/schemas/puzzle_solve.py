@@ -16,7 +16,7 @@ class PuzzleSolveOut(BaseModel):
     puzzle: PuzzleOut
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PuzzleSolveResult(BaseModel):
     status: PuzzleSolveStatus

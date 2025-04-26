@@ -28,7 +28,9 @@ async def handle_move(game_id: UUID, user_id: UUID, uci_move: str, db: AsyncSess
     if user_id != expected_turn:
         raise InvalidMove("No es tu turno.")
 
-    board = chess.Board(active_game.current_fen)
+    board = chess.Board()
+    for move_uci in active_game.moves_uci:
+        board.push_uci(move_uci)
 
     try:
         move = chess.Move.from_uci(uci_move)
@@ -78,10 +80,10 @@ async def check_game_end(
     active_game: ActiveGame,
     db: AsyncSession
 ):
-    if board.is_game_over():
-        result = None
-        termination = None
+    result = None
+    termination = None
 
+    if board.is_game_over():
         if board.is_checkmate():
             winner = "white" if active_game.turn == "black" else "black"
             result = GameResult.white_win if winner == "white" else GameResult.black_win
@@ -95,16 +97,17 @@ async def check_game_end(
             result = GameResult.draw
             termination = GameTermination.insufficient_material
 
-        elif board.can_claim_threefold_repetition():
-            result = GameResult.draw
+    elif board.can_claim_draw():
+        result = GameResult.draw
+        if board.is_repetition(3):
+            termination = GameTermination.threefold_repetition
+        elif board.is_fifty_moves():
+            termination = GameTermination.fifty_move_rule
+        else:
             termination = GameTermination.threefold_repetition
 
-        elif board.can_claim_fifty_moves():
-            result = GameResult.draw
-            termination = GameTermination.fifty_move_rule
-
-        if result and termination:
-            await handle_game_over(game_id, active_game, result, termination, db)
+    if result and termination:
+        await handle_game_over(game_id, active_game, result, termination, db)
 
 async def handle_timeout_loss(
     game_id: UUID,
