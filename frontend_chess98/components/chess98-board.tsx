@@ -69,8 +69,12 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         const [moveFeedback, setMoveFeedback] = useState<BoardFeedback | null>(null)
         const gameRef = useRef(new Chess(initialFen || "start"));
         const [fen, setFen] = useState<string>(initialFen || gameRef.current.fen());
+        const [highlightedSquares, setHighlightedSquares] = useState<Record<string, React.CSSProperties>>({});
 
         const { settings } = useSettingsStore()
+
+        const boardColors = getBoardColors(settings?.board_theme || "default")
+        const pieces = getCustomPieces(settings?.piece_set || "default")
 
         useEffect(() => {
             const newGame = new Chess(initialFen);
@@ -118,6 +122,7 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         };
 
         const handleSquareClick = (square: Square) => {
+            setHighlightedSquares({});
             const piece = gameRef.current.get(square);
             const turn = gameRef.current.turn();
             if (turn !== playerColor) return;
@@ -189,22 +194,34 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
             return handleMove(from, to, promotion);
         }
 
+        const handleSquareRightClick = (square: Square) => {
+            setHighlightedSquares((prev) => {
+              const newHighlights = { ...prev };
+              if (newHighlights[square]) {
+                delete newHighlights[square];
+              } else {
+                newHighlights[square] = { backgroundColor: boardColors.highlightedSquare };
+              }
+              return newHighlights;
+            });
+          };
+          
+
         const getSquareStyles = () => {
-            const styles: Record<string, React.CSSProperties> = {};
+            const styles: Record<string, React.CSSProperties> = { ...highlightedSquares };
 
             if (selectedSquare) {
-                styles[selectedSquare] = { backgroundColor: "rgba(0,0,255,0.3)" };
+                styles[selectedSquare] = { backgroundColor: boardColors.selectedHighlight };
             }
             if (lastMoveFrom) {
-                styles[lastMoveFrom] = { backgroundColor: "rgba(144, 238, 144, 0.25)" };
+                styles[lastMoveFrom] = { backgroundColor: boardColors.moveHighlight };
             }
             if (lastMoveTo) {
-                styles[lastMoveTo] = { backgroundColor: "rgba(144, 238, 144, 0.25)" };
+                styles[lastMoveTo] = { backgroundColor: boardColors.moveHighlight };
             }
             if (inCheckSquare) {
                 styles[inCheckSquare] = {
-                    backgroundColor: "rgba(239, 68, 68, 0.6)",
-                    boxShadow: "inset 0 0 0 3px rgba(220, 38, 38, 0.8)",
+                    backgroundColor: boardColors.checkHighlight,
                 };
             }
 
@@ -282,9 +299,6 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
             applyFeedback
         }));
 
-        const boardColors = getBoardColors(settings?.board_theme || "default")
-        const pieces = getCustomPieces(settings?.piece_set || "default")
-
         return (
             <div className="relative">
                 <div className="aspect-square">
@@ -307,6 +321,7 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
                         showBoardNotation={true}
                         showPromotionDialog={isPromotionDialogOpen}
                         onPromotionPieceSelect={handlePromotionPieceSelect}
+                        onSquareRightClick={handleSquareRightClick}
                     />
                 </div>
                 <AnimatePresence>
