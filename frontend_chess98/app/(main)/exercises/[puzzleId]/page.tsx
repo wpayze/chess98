@@ -24,6 +24,7 @@ import { useAuthStore } from "@/store/auth-store"
 import { Chess98Board, Chess98BoardHandle } from "@/components/chess98-board"
 import { useParams, useRouter } from "next/navigation"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { BoardFeedback } from "@/models/board"
 
 export default function ExercisesPage() {
   const params = useParams()
@@ -131,6 +132,7 @@ export default function ExercisesPage() {
       } else {
         // 🎉 Puzzle completo
         setMoveFeedback("correct");
+        boardRef.current?.applyFeedback(BoardFeedback.Correct);
         setIsPuzzleComplete(true);
 
         const result = await puzzleService.solvePuzzle(puzzle.id, {
@@ -148,6 +150,7 @@ export default function ExercisesPage() {
     } else {
       // ❌ Jugada incorrecta
       setMoveFeedback("wrong");
+      boardRef.current?.applyFeedback(BoardFeedback.Wrong);
       setIsPuzzleComplete(true);
 
       const result = await puzzleService.solvePuzzle(puzzle.id, {
@@ -309,46 +312,43 @@ export default function ExercisesPage() {
                       </div>
                     )}
                   </div>
-                  <div className={`mt-4 p-4 ${playerColor === "white" ? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
-                    {!isPuzzleComplete ? (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 flex items-center justify-center">
-                            {playerColor === "white" ? (
-                              <div className="w-8 h-8 rounded-full bg-white"></div>
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-black border border-slate-600"></div>
-                            )}
-                          </div>
-                          <div>
-                            <h3 className={`text-lg font-bold ${playerColor === "white" ? "text-white" : "text-black"}`}>Your turn</h3>
-                            <p className={`text-sm ${playerColor === "white" ? "text-slate-300" : "text-black"}`}>
-                              Find the best move for {playerColor === "white" ? "white" : "black"}.
-                            </p>
-                          </div>
+                  {!isPuzzleComplete ? (
+                    <div className={`mt-4 p-4 ${playerColor === "white" ? "bg-slate-800/50" : "bg-white"} rounded-md border border-slate-700/50`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 flex items-center justify-center">
+                          {playerColor === "white" ? (
+                            <div className="w-8 h-8 rounded-full bg-white"></div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-black border border-slate-600"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className={`text-lg font-bold ${playerColor === "white" ? "text-white" : "text-black"}`}>Your turn</h3>
+                          <p className={`text-sm ${playerColor === "white" ? "text-slate-300" : "text-black"}`}>
+                            Find the best move for {playerColor === "white" ? "white" : "black"}.
+                          </p>
                         </div>
                       </div>
-                    ) : moveFeedback ? (
-                      <div>
-                        {moveFeedback === "correct" && (
-                          <div className="flex items-center text-green-400">
-                            <Check className="h-5 w-5 mr-2" />
-                            <span className="font-medium">Correct move! Well done.</span>
-                          </div>
-                        )}
+                    </div>
+                  ) : moveFeedback ? (
+                    <div className={`mt-4 p-4 bg-slate-800/50 rounded-md border border-slate-700/50`}>
+                      {moveFeedback === "correct" && (
+                        <div className="flex items-center text-green-400">
+                          <Check className="h-5 w-5 mr-2" />
+                          <span className="font-medium">Correct move! Well done.</span>
+                        </div>
+                      )}
 
-                        {moveFeedback === "wrong" && (
-                          <div className="flex items-center text-red-400">
-                            <X className="h-5 w-5 mr-2" />
-                            <span className="font-medium">Incorrect move.</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      // Para que el espacio no colapse si no hay feedback
-                      <div className="h-5" />
-                    )}
-                  </div>
+                      {moveFeedback === "wrong" && (
+                        <div className="flex items-center text-red-400">
+                          <X className="h-5 w-5 mr-2" />
+                          <span className="font-medium">Incorrect move.</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="h-5" />
+                  )}
                 </div>
               </CardContent>
             </Card>
