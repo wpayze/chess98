@@ -70,6 +70,7 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         const gameRef = useRef(new Chess(initialFen || "start"));
         const [fen, setFen] = useState<string>(initialFen || gameRef.current.fen());
         const [highlightedSquares, setHighlightedSquares] = useState<Record<string, React.CSSProperties>>({});
+        const [legalMovesHighlight, setLegalMovesHighlight] = useState<Set<string>>(new Set());
 
         const { settings } = useSettingsStore()
 
@@ -87,6 +88,8 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
 
         const handleMove = (from: string, to: string, promotion?: string) => {
             let move = null;
+            setLegalMovesHighlight(new Set());
+
             try {
                 move = gameRef.current.move({ from, to, promotion: promotion ?? "q" });
             } catch (err) {
@@ -122,25 +125,28 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
         };
 
         const handleSquareClick = (square: Square) => {
-            setHighlightedSquares({});
             const piece = gameRef.current.get(square);
             const turn = gameRef.current.turn();
+            setHighlightedSquares({});
+
             if (turn !== playerColor) return;
 
             if (selectedSquare === square) {
                 setSelectedSquare(null);
+                setLegalMovesHighlight(new Set());
                 return;
             }
 
-            if (!selectedSquare) {
+            if (!selectedSquare || piece?.color === playerColor) {
                 if (piece?.color === playerColor) {
                     setSelectedSquare(square);
-                }
-                return;
-            }
 
-            if (piece?.color === playerColor) {
-                setSelectedSquare(square);
+                    const moves = gameRef.current.moves({ square, verbose: true });
+                    const newHighlights = new Set<string>();
+                    moves.forEach((move) => newHighlights.add(move.to));
+
+                    setLegalMovesHighlight(newHighlights);
+                }
                 return;
             }
 
@@ -161,6 +167,7 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
 
         const handlePieceDrop = (sourceSquare: string, targetSquare: string, piece: string) => {
             const currentTurn = gameRef.current.turn();
+
             if (currentTurn !== playerColor) return false;
             if (piece[0] !== playerColor) return false;
 
@@ -175,6 +182,10 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
             const promotion = isPromotion ? piece[1].toLowerCase() : undefined;
 
             return handleMove(sourceSquare, targetSquare, promotion);
+        };
+
+        const handlePieceDragEnd = (piece: string, sourceSquare: Square) => {
+            setLegalMovesHighlight(new Set());
         };
 
         const handlePromotionPieceSelect = (piece?: string, from?: string, to?: string) => {
@@ -196,37 +207,64 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
 
         const handleSquareRightClick = (square: Square) => {
             setHighlightedSquares((prev) => {
-              const newHighlights = { ...prev };
-              if (newHighlights[square]) {
-                delete newHighlights[square];
-              } else {
-                newHighlights[square] = { backgroundColor: boardColors.highlightedSquare };
-              }
-              return newHighlights;
+                const newHighlights = { ...prev };
+                if (newHighlights[square]) {
+                    delete newHighlights[square];
+                } else {
+                    newHighlights[square] = { backgroundColor: boardColors.highlightedSquare };
+                }
+                return newHighlights;
             });
-          };
-          
+        };
+
+        const handlePieceDragBegin = (piece: string, sourceSquare: Square) => {
+            const color = piece[0]; // "w" o "b"
+
+            if (color !== playerColor) return;
+
+            const moves = gameRef.current.moves({ square: sourceSquare, verbose: true });
+            const newHighlights = new Set<string>();
+            moves.forEach((move) => newHighlights.add(move.to));
+
+            setLegalMovesHighlight(newHighlights);
+        };
 
         const getSquareStyles = () => {
-            const styles: Record<string, React.CSSProperties> = { ...highlightedSquares };
+            const styles: Record<string, React.CSSProperties> = {};
 
-            if (selectedSquare) {
-                styles[selectedSquare] = { backgroundColor: boardColors.selectedHighlight };
-            }
-            if (lastMoveFrom) {
-                styles[lastMoveFrom] = { backgroundColor: boardColors.moveHighlight };
-            }
-            if (lastMoveTo) {
-                styles[lastMoveTo] = { backgroundColor: boardColors.moveHighlight };
-            }
-            if (inCheckSquare) {
-                styles[inCheckSquare] = {
-                    backgroundColor: boardColors.checkHighlight,
-                };
-            }
+            const addBackgroundLayer = (square: string, layer: string) => {
+                if (!styles[square]) styles[square] = {};
+                styles[square].background = styles[square].background
+                    ? `${styles[square].background}, ${layer}`
+                    : layer;
+            };
+
+            // Círculo para jugadas legales
+            legalMovesHighlight.forEach((square) => {
+                addBackgroundLayer(square, 'radial-gradient(circle, rgba(0,0,0,0.3) 20%, transparent 20%)');
+            });
+
+            // Highlight manual por right-click
+            Object.entries(highlightedSquares).forEach(([square, style]) => {
+                if (style.backgroundColor) {
+                    addBackgroundLayer(square, style.backgroundColor);
+                }
+            });
+
+            // Resaltados de eventos
+            const overlayBackground = (square: Square | null, overlayColor: string) => {
+                if (!square) return;
+                addBackgroundLayer(square, overlayColor);
+            };
+
+            overlayBackground(selectedSquare, boardColors.selectedHighlight);
+            overlayBackground(lastMoveFrom, boardColors.moveHighlight);
+            overlayBackground(lastMoveTo, boardColors.moveHighlight);
+            overlayBackground(inCheckSquare, boardColors.checkHighlight);
 
             return styles;
         };
+
 
         //Funciones externas
         const applyExternalMove = ({ from, to, fen, turn }: { from: string; to: string; fen: string; turn: "w" | "b"; }) => {
@@ -322,6 +360,8 @@ export const Chess98Board = forwardRef<Chess98BoardHandle, Chess98BoardProps>(
                         showPromotionDialog={isPromotionDialogOpen}
                         onPromotionPieceSelect={handlePromotionPieceSelect}
                         onSquareRightClick={handleSquareRightClick}
+                        onPieceDragBegin={handlePieceDragBegin}
+                        onPieceDragEnd={handlePieceDragEnd}
                     />
                 </div>
                 <AnimatePresence>
